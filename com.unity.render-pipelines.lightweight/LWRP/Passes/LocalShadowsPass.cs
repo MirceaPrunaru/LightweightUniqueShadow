@@ -170,7 +170,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             float invHalfShadowAtlasWidth = 0.5f * invShadowAtlasWidth;
             float invHalfShadowAtlasHeight = 0.5f * invShadowAtlasHeight;
 
-            cmd.SetGlobalTexture(RenderTargetHandles.LocalShadowmap, m_LocalShadowmapTexture);
+            cmd.SetGlobalTexture(RenderTargetHandles.LocalShadowmap.id, m_LocalShadowmapTexture);
             cmd.SetGlobalMatrixArray(LocalShadowConstantBuffer._LocalWorldToShadowAtlas, m_LocalShadowMatrices);
             cmd.SetGlobalFloatArray(LocalShadowConstantBuffer._LocalShadowStrength, m_LocalShadowStrength);
             cmd.SetGlobalVector(LocalShadowConstantBuffer._LocalShadowOffset0, new Vector4(-invHalfShadowAtlasWidth, -invHalfShadowAtlasHeight, 0.0f, 0.0f));

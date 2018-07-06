@@ -156,7 +156,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             float invShadowAtlasHeight = 1.0f / shadowData.directionalShadowAtlasHeight;
             float invHalfShadowAtlasWidth = 0.5f * invShadowAtlasWidth;
             float invHalfShadowAtlasHeight = 0.5f * invShadowAtlasHeight;
-            cmd.SetGlobalTexture(RenderTargetHandles.DirectionalShadowmap, m_DirectionalShadowmapTexture);
+            cmd.SetGlobalTexture(RenderTargetHandles.DirectionalShadowmap.id, m_DirectionalShadowmapTexture);
             if (shadowData.directionalLightCascadeCount > 1)
                 cmd.SetGlobalMatrixArray(DirectionalShadowConstantBuffer._WorldToShadow, m_DirectionalShadowMatrices);
             else

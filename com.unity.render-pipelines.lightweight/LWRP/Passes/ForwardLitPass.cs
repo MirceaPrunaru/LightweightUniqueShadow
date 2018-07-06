@@ -82,28 +82,30 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             m_SampleOffsetShaderHandle = Shader.PropertyToID("_SampleOffset");
         }
 
-        public override void Setup(CommandBuffer cmd, RenderTextureDescriptor baseDescriptor, int[] colorAttachmentHandles, int depthAttachmentHandle = -1, int samples = 1)
+        public override void Setup(CommandBuffer cmd, RenderTextureDescriptor baseDescriptor,
+            RenderTargetHandle[] colorAttachmentHandles,
+            RenderTargetHandle depthAttachmentHandle, SampleCount samples)
         {
-            base.Setup(cmd, baseDescriptor, colorAttachmentHandles, depthAttachmentHandle, samples);
+            base.Setup(cmd, baseDescriptor, colorAttachmentHandles, depthAttachmentHandle: depthAttachmentHandle, samples: samples);
 
             m_ColorFormat = baseDescriptor.colorFormat;
-            if (colorAttachmentHandle != -1)
+            if (colorAttachmentHandle != RenderTargetHandle.BackBuffer)
             {
                 var descriptor = baseDescriptor;
                 descriptor.depthBufferBits = k_DepthStencilBufferBits;  // TODO: does the color RT always need depth?
                 descriptor.sRGB = true;
-                descriptor.msaaSamples = samples;
-                cmd.GetTemporaryRT(colorAttachmentHandle, descriptor, FilterMode.Bilinear);
+                descriptor.msaaSamples = (int)samples;
+                cmd.GetTemporaryRT(colorAttachmentHandle.id, descriptor, FilterMode.Bilinear);
             }
 
-            if (depthAttachmentHandle != -1)
+            if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
             {
                 var descriptor = baseDescriptor;
                 descriptor.colorFormat = RenderTextureFormat.Depth;
                 descriptor.depthBufferBits = k_DepthStencilBufferBits;
-                descriptor.msaaSamples = samples;
-                descriptor.bindMS = samples > 1;
-                cmd.GetTemporaryRT(depthAttachmentHandle, descriptor, FilterMode.Point);
+                descriptor.msaaSamples = (int)samples;
+                descriptor.bindMS = (int)samples > 1;
+                cmd.GetTemporaryRT(depthAttachmentHandle.id, descriptor, FilterMode.Point);
             }
         }
 
@@ -123,7 +125,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 renderingData.cameraData.postProcessLayer.HasOpaqueOnlyEffects(renderer.postProcessRenderContext))
                 OpaquePostProcessSubPass(ref context, ref renderingData.cameraData);
 
-            if (depthAttachmentHandle != -1)
+            if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
                 CopyDepthSubPass(ref context, ref renderingData.cameraData);
 
             if (renderingData.cameraData.requiresOpaqueTexture)
@@ -133,7 +135,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
             if (renderingData.cameraData.postProcessEnabled)
                 PostProcessPass(ref context, ref renderingData.cameraData);
-            else if (!renderingData.cameraData.isOffscreenRender && colorAttachmentHandle != -1)
+            else if (!renderingData.cameraData.isOffscreenRender && colorAttachmentHandle != RenderTargetHandle.BackBuffer)
                 FinalBlitPass(ref context, ref renderingData.cameraData);
 
             if (renderingData.cameraData.isStereoEnabled)
@@ -292,9 +294,9 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
         void SetRenderTarget(CommandBuffer cmd, RenderBufferLoadAction loadOp, RenderBufferStoreAction storeOp, ClearFlag clearFlag, Color clearColor)
         {
-            if (colorAttachmentHandle != -1)
+            if (colorAttachmentHandle != RenderTargetHandle.BackBuffer)
             {
-                if (depthAttachmentHandle != -1)
+                if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
                     SetRenderTarget(cmd, GetSurface(colorAttachmentHandle), loadOp, storeOp, GetSurface(depthAttachmentHandle), loadOp, storeOp, clearFlag, clearColor);
                 else
                     SetRenderTarget(cmd, GetSurface(colorAttachmentHandle), loadOp, storeOp, clearFlag, clearColor);
@@ -516,7 +518,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             descriptor.depthBufferBits = k_DepthStencilBufferBits;
             descriptor.msaaSamples = 1;
             descriptor.bindMS = false;
-            cmd.GetTemporaryRT(RenderTargetHandles.DepthTexture, descriptor, FilterMode.Point);
+            cmd.GetTemporaryRT(RenderTargetHandles.DepthTexture.id, descriptor, FilterMode.Point);
 
             if (cameraData.msaaSamples > 1)
             {
@@ -554,7 +556,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             RenderTargetIdentifier colorRT = GetSurface(colorAttachmentHandle);
             RenderTargetIdentifier opaqueColorRT = GetSurface(RenderTargetHandles.OpaqueColor);
 
-            cmd.GetTemporaryRT(RenderTargetHandles.OpaqueColor, opaqueDesc, cameraData.opaqueTextureDownsampling == Downsampling.None ? FilterMode.Point : FilterMode.Bilinear);
+            cmd.GetTemporaryRT(RenderTargetHandles.OpaqueColor.id, opaqueDesc, cameraData.opaqueTextureDownsampling == Downsampling.None ? FilterMode.Point : FilterMode.Bilinear);
             switch (downsampling)
             {
                 case Downsampling.None:

@@ -112,7 +112,11 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                         InitializeRenderingData(ref cameraData, visibleLights,
                             m_Renderer.maxSupportedLocalLightsPerPass, m_Renderer.maxSupportedVertexLights,
                             out renderingData);
-                        m_Renderer.Setup(ref context, ref m_CullResults, ref renderingData);
+
+                        var setup = cameraData.camera.GetComponent<IRendererSetup>();
+                        if (setup == null)
+                            setup = new DefaultLWRenderer();
+                        setup.Setup(m_Renderer, ref context, ref m_CullResults, ref renderingData);
                         m_Renderer.Execute(ref context, ref m_CullResults, ref renderingData);
                     }
 #if UNITY_EDITOR

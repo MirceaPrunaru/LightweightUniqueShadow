@@ -1,21 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.PostProcessing;
 using UnityEngine.XR;
 
 namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
-    public enum RenderPassHandles
-    {
-        DepthPrepass,
-        DirectionalShadows,
-        LocalShadows,
-        ScreenSpaceShadowResolve,
-        ForwardLit,
-        Count,
-    }
-
     public enum MaterialHandles
     {
         Error,
@@ -26,15 +17,173 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         Count,
     }
 
+    public struct RenderTargetHandle
+    {
+        public int id;
+
+        public bool Equals(RenderTargetHandle other)
+        {
+            return id == other.id;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            return obj is RenderTargetHandle && Equals((RenderTargetHandle) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return id;
+        }
+
+        public static readonly RenderTargetHandle BackBuffer = new RenderTargetHandle {id = -1};
+
+        public static bool operator ==(RenderTargetHandle c1, RenderTargetHandle c2)
+        {
+            return c1.Equals(c2);
+        }
+
+        public static bool operator !=(RenderTargetHandle c1, RenderTargetHandle c2)
+        {
+            return !c1.Equals(c2);
+        }
+    }
+
+    public enum SampleCount
+    {
+        One = 1,
+        Two = 2,
+        Four = 4,
+    }
+
     public static class RenderTargetHandles
     {
-        public static int Color;
-        public static int DepthAttachment;
-        public static int DepthTexture;
-        public static int OpaqueColor;
-        public static int DirectionalShadowmap;
-        public static int LocalShadowmap;
-        public static int ScreenSpaceShadowmap;
+        public static RenderTargetHandle Color;
+        public static RenderTargetHandle DepthAttachment;
+        public static RenderTargetHandle DepthTexture;
+        public static RenderTargetHandle OpaqueColor;
+        public static RenderTargetHandle DirectionalShadowmap;
+        public static RenderTargetHandle LocalShadowmap;
+        public static RenderTargetHandle ScreenSpaceShadowmap;
+    }
+
+
+    public interface IRendererSetup
+    {
+
+        void Setup(LightweightForwardRenderer renderer, ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData);
+
+    }
+
+    public class DefaultLWRenderer : IRendererSetup
+    {
+        [NonSerialized] private ScriptableRenderPass[] m_RenderPassSet = null;
+
+        public enum RenderPassHandles : int
+        {
+            DepthPrepass,
+            DirectionalShadows,
+            LocalShadows,
+            SetupForwardRendering,
+            ScreenSpaceShadowResolve,
+            ForwardLit,
+            Count,
+        }
+
+
+        private void Init(LightweightForwardRenderer renderer)
+        {
+            if (m_RenderPassSet != null)
+                return;
+
+            m_RenderPassSet = new ScriptableRenderPass[]
+            {
+                new DepthOnlyPass(renderer),
+                new DirectionalShadowsPass(renderer),
+                new LocalShadowsPass(renderer),
+                new SetupForwardRendering(renderer),
+                new ScreenSpaceShadowResolvePass(renderer),
+                new ForwardLitPass(renderer),
+            };
+        }
+
+        public void Setup(LightweightForwardRenderer renderer, ref ScriptableRenderContext context,
+            ref CullResults cullResults, ref RenderingData renderingData)
+        {
+            Init(renderer);
+
+            renderer.Clear();
+
+            renderer.SetupPerObjectLightIndices(ref cullResults, ref renderingData.lightData);
+            RenderTextureDescriptor baseDescriptor = renderer.CreateRTDesc(ref renderingData.cameraData);
+            RenderTextureDescriptor shadowDescriptor = baseDescriptor;
+            shadowDescriptor.dimension = TextureDimension.Tex2D;
+
+            bool requiresCameraDepth = renderingData.cameraData.requiresDepthTexture;
+            bool requiresDepthPrepass = renderingData.shadowData.requiresScreenSpaceShadowResolve ||
+                                        renderingData.cameraData.isSceneViewCamera ||
+                                        (requiresCameraDepth &&
+                                         !LightweightForwardRenderer.CanCopyDepth(ref renderingData.cameraData));
+
+            // For now VR requires a depth prepass until we figure out how to properly resolve texture2DMS in stereo
+            requiresDepthPrepass |= renderingData.cameraData.isStereoEnabled;
+
+            CommandBuffer cmd = CommandBufferPool.Get("Setup Rendering");
+
+            if (renderingData.shadowData.renderDirectionalShadows)
+            {
+                var pass = m_RenderPassSet[(int) RenderPassHandles.DirectionalShadows];
+                pass.Setup(cmd, shadowDescriptor, null, RenderTargetHandle.BackBuffer, SampleCount.One);
+                renderer.EnqueuePass(pass);
+            }
+
+            if (renderingData.shadowData.renderLocalShadows)
+            {
+                var pass = m_RenderPassSet[(int) RenderPassHandles.LocalShadows];
+                pass.Setup(cmd, shadowDescriptor, null, RenderTargetHandle.BackBuffer, SampleCount.One);
+                renderer.EnqueuePass(pass);
+            }
+
+            var setup = m_RenderPassSet[(int) RenderPassHandles.SetupForwardRendering];
+            renderer.EnqueuePass(setup);
+
+            if (requiresDepthPrepass)
+            {
+                var pass = m_RenderPassSet[(int) RenderPassHandles.DepthPrepass];
+                pass.Setup(cmd, baseDescriptor, null, RenderTargetHandles.DepthTexture, SampleCount.One);
+                renderer.EnqueuePass(pass);
+            }
+
+            if (renderingData.shadowData.renderDirectionalShadows &&
+                renderingData.shadowData.requiresScreenSpaceShadowResolve)
+            {
+                var pass2 = m_RenderPassSet[(int) RenderPassHandles.ScreenSpaceShadowResolve];
+                pass2.Setup(cmd, baseDescriptor, new[] {RenderTargetHandles.ScreenSpaceShadowmap},
+                    RenderTargetHandle.BackBuffer, SampleCount.One);
+                renderer.EnqueuePass(pass2);
+            }
+
+            bool requiresDepthAttachment = requiresCameraDepth && !requiresDepthPrepass;
+            bool requiresColorAttachment =
+                LightweightForwardRenderer.RequiresIntermediateColorTexture(ref renderingData.cameraData,
+                    baseDescriptor,
+                    requiresDepthAttachment);
+            RenderTargetHandle[] colorHandles = (requiresColorAttachment) ? new[] {RenderTargetHandles.Color} : null;
+            RenderTargetHandle depthHandle = (requiresDepthAttachment)
+                ? RenderTargetHandles.DepthAttachment
+                : RenderTargetHandle.BackBuffer;
+
+
+            var pass3 = m_RenderPassSet[(int) RenderPassHandles.ForwardLit];
+            pass3.Setup(cmd, baseDescriptor, colorHandles, depthHandle,
+                (SampleCount) renderingData.cameraData.msaaSamples);
+            renderer.EnqueuePass(pass3);
+
+            context.ExecuteCommandBuffer(cmd);
+            CommandBufferPool.Release(cmd);
+
+        }
     }
 
     public class LightweightForwardRenderer
@@ -80,12 +229,10 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         public FilterRenderersSettings opaqueFilterSettings { get; private set; }
         public FilterRenderersSettings transparentFilterSettings { get; private set; }
 
-        Dictionary<int, RenderTargetIdentifier> m_ResourceMap = new Dictionary<int, RenderTargetIdentifier>();
-        List<ScriptableRenderPass> m_ActiveShadowQueue = new List<ScriptableRenderPass>();
+        Dictionary<RenderTargetHandle, RenderTargetIdentifier> m_ResourceMap = new Dictionary<RenderTargetHandle, RenderTargetIdentifier>();
         List<ScriptableRenderPass> m_ActiveRenderPassQueue = new List<ScriptableRenderPass>();
 
         Material[] m_Materials;
-        ScriptableRenderPass[] m_RenderPassSet = new ScriptableRenderPass[(int)RenderPassHandles.Count];
 
         public LightweightForwardRenderer(LightweightPipelineAsset pipelineAsset)
         {
@@ -106,15 +253,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 CoreUtils.CreateEngineMaterial(pipelineAsset.samplingShader),
                 CoreUtils.CreateEngineMaterial(pipelineAsset.blitShader),
                 CoreUtils.CreateEngineMaterial(pipelineAsset.screenSpaceShadowShader),
-            };
-
-            m_RenderPassSet = new ScriptableRenderPass[(int)RenderPassHandles.Count]
-            {
-                new DepthOnlyPass(this),
-                new DirectionalShadowsPass(this),
-                new LocalShadowsPass(this),
-                new ScreenSpaceShadowResolvePass(this),
-                new ForwardLitPass(this),
             };
 
             postProcessRenderContext = new PostProcessRenderContext();
@@ -162,64 +300,10 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             return desc;
         }
 
-        public void Setup(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
-        {
-            Clear();
 
-            SetupPerObjectLightIndices(ref cullResults, ref renderingData.lightData);
-            RenderTextureDescriptor baseDescriptor = CreateRTDesc(ref renderingData.cameraData);
-            RenderTextureDescriptor shadowDescriptor = baseDescriptor;
-            shadowDescriptor.dimension = TextureDimension.Tex2D;
-
-            bool requiresCameraDepth = renderingData.cameraData.requiresDepthTexture;
-            bool requiresDepthPrepass = renderingData.shadowData.requiresScreenSpaceShadowResolve ||
-                renderingData.cameraData.isSceneViewCamera || (requiresCameraDepth && !CanCopyDepth(ref renderingData.cameraData));
-
-            // For now VR requires a depth prepass until we figure out how to properly resolve texture2DMS in stereo
-            requiresDepthPrepass |= renderingData.cameraData.isStereoEnabled;
-
-            CommandBuffer cmd = CommandBufferPool.Get("Setup Rendering");
-            if (requiresDepthPrepass)
-                EnqueuePass(cmd, RenderPassHandles.DepthPrepass, baseDescriptor, null, RenderTargetHandles.DepthTexture);
-
-            if (renderingData.shadowData.renderDirectionalShadows)
-            {
-                EnqueuePass(cmd, RenderPassHandles.DirectionalShadows, shadowDescriptor);
-                if (renderingData.shadowData.requiresScreenSpaceShadowResolve)
-                    EnqueuePass(cmd, RenderPassHandles.ScreenSpaceShadowResolve, baseDescriptor, new[] {RenderTargetHandles.ScreenSpaceShadowmap});
-            }
-
-            if (renderingData.shadowData.renderLocalShadows)
-                EnqueuePass(cmd, RenderPassHandles.LocalShadows, shadowDescriptor);
-
-            bool requiresDepthAttachment = requiresCameraDepth && !requiresDepthPrepass;
-            bool requiresColorAttachment = RequiresIntermediateColorTexture(ref renderingData.cameraData, baseDescriptor, requiresDepthAttachment);
-            int[] colorHandles = (requiresColorAttachment) ? new[] {RenderTargetHandles.Color} : null;
-            int depthHandle = (requiresDepthAttachment) ? RenderTargetHandles.DepthAttachment : -1;
-            EnqueuePass(cmd, RenderPassHandles.ForwardLit, baseDescriptor, colorHandles, depthHandle, renderingData.cameraData.msaaSamples);
-
-            context.ExecuteCommandBuffer(cmd);
-            CommandBufferPool.Release(cmd);
-        }
 
         public void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
         {
-            // TODO: The reason we have to separate passes into two queues is because shadows require different camera
-            // context. We need to take a look at approaches to effectively share shadow between cameras, then we
-            // can move this out
-            for (int i = 0; i < m_ActiveShadowQueue.Count; ++i)
-                m_ActiveShadowQueue[i].Execute(ref context, ref cullResults, ref renderingData);
-
-            // SetupCameraProperties does the following:
-            // Setup Camera RenderTarget and Viewport
-            // VR Camera Setup and SINGLE_PASS_STEREO props
-            // Setup camera view, proj and their inv matrices.
-            // Setup properties: _WorldSpaceCameraPos, _ProjectionParams, _ScreenParams, _ZBufferParams, unity_OrthoParams
-            // Setup camera world clip planes props
-            // setup HDR keyword
-            // Setup global time properties (_Time, _SinTime, _CosTime)
-            context.SetupCameraProperties(renderingData.cameraData.camera, renderingData.cameraData.isStereoEnabled);
-
             for (int i = 0; i < m_ActiveRenderPassQueue.Count; ++i)
                 m_ActiveRenderPassQueue[i].Execute(ref context, ref cullResults, ref renderingData);
 
@@ -242,9 +326,9 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             DisposePasses(ref context);
         }
 
-        public RenderTargetIdentifier GetSurface(int handle)
+        public RenderTargetIdentifier GetSurface(RenderTargetHandle handle)
         {
-            if (handle == -1)
+            if (handle.id == -1)
                 return BuiltinRenderTextureType.CameraTarget;
 
             RenderTargetIdentifier renderTargetID;
@@ -270,44 +354,24 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             return m_Materials[handleID];
         }
 
-        ScriptableRenderPass GetPass(RenderPassHandles handle)
-        {
-            int handleID = (int)handle;
-            if (handleID >= m_RenderPassSet.Length)
-            {
-                Debug.LogError(string.Format("Render Pass {0} is not registered.",
-                        Enum.GetName(typeof(RenderPassHandles), handleID)));
-                return null;
-            }
 
-            return m_RenderPassSet[handleID];
-        }
-
-        void Clear()
+        public void Clear()
         {
-            m_ActiveShadowQueue.Clear();
             m_ActiveRenderPassQueue.Clear();
         }
 
-        void RegisterSurface(string shaderProperty, out int handle)
+        void RegisterSurface(string shaderProperty, out RenderTargetHandle handle)
         {
-            handle = Shader.PropertyToID(shaderProperty);
-            m_ResourceMap.Add(handle, new RenderTargetIdentifier(handle));
+            handle.id = Shader.PropertyToID(shaderProperty);
+            m_ResourceMap.Add(handle, new RenderTargetIdentifier(handle.id));
         }
 
-        void EnqueuePass(CommandBuffer cmd, RenderPassHandles passHandle, RenderTextureDescriptor baseDescriptor,
-            int[] colorAttachmentHandles = null, int depthAttachmentHandle = -1, int samples = 1)
+        public void EnqueuePass(ScriptableRenderPass pass)
         {
-            ScriptableRenderPass pass = GetPass(passHandle);
-            pass.Setup(cmd, baseDescriptor, colorAttachmentHandles, depthAttachmentHandle, samples);
-
-            if (passHandle == RenderPassHandles.DirectionalShadows || passHandle == RenderPassHandles.LocalShadows)
-                m_ActiveShadowQueue.Add(pass);
-            else
-                m_ActiveRenderPassQueue.Add(pass);
+            m_ActiveRenderPassQueue.Add(pass);
         }
 
-        bool RequiresIntermediateColorTexture(ref CameraData cameraData, RenderTextureDescriptor baseDescriptor, bool requiresCameraDepth)
+        public static bool RequiresIntermediateColorTexture(ref CameraData cameraData, RenderTextureDescriptor baseDescriptor, bool requiresCameraDepth)
         {
             if (cameraData.isOffscreenRender)
                 return false;
@@ -318,9 +382,9 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 cameraData.postProcessEnabled || cameraData.requiresOpaqueTexture || isTargetTexture2DArray || !cameraData.isDefaultViewport;
         }
 
-        bool CanCopyDepth(ref CameraData cameraData)
+        public static bool CanCopyDepth(ref CameraData cameraData)
         {
-            bool msaaEnabledForCamera = cameraData.msaaSamples > 1;
+            bool msaaEnabledForCamera = (int)cameraData.msaaSamples > 1;
             bool supportsTextureCopy = SystemInfo.copyTextureSupport != CopyTextureSupport.None;
             bool supportsDepthTarget = SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.Depth);
             bool supportsDepthCopy = !msaaEnabledForCamera && (supportsDepthTarget || supportsTextureCopy);
@@ -335,8 +399,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         void DisposePasses(ref ScriptableRenderContext context)
         {
             CommandBuffer cmd = CommandBufferPool.Get("Release Resources");
-            for (int i = 0; i < m_ActiveShadowQueue.Count; ++i)
-                m_ActiveShadowQueue[i].Dispose(cmd);
 
             for (int i = 0; i < m_ActiveRenderPassQueue.Count; ++i)
                 m_ActiveRenderPassQueue[i].Dispose(cmd);
@@ -345,7 +407,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             CommandBufferPool.Release(cmd);
         }
 
-        void SetupPerObjectLightIndices(ref CullResults cullResults, ref LightData lightData)
+        public void SetupPerObjectLightIndices(ref CullResults cullResults, ref LightData lightData)
         {
             if (lightData.totalAdditionalLightsCount == 0)
                 return;

@@ -16,12 +16,14 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             m_ScreenSpaceShadowsMaterial = renderer.GetMaterial(MaterialHandles.ScrenSpaceShadow);
         }
 
-        public override void Setup(CommandBuffer cmd, RenderTextureDescriptor baseDescriptor, int[] colorAttachmentHandles, int depthAttachmentHandle = -1, int samples = 1)
+        public override void Setup(CommandBuffer cmd, RenderTextureDescriptor baseDescriptor,
+            RenderTargetHandle[] colorAttachmentHandles,
+            RenderTargetHandle depthAttachmentHandle, SampleCount samples)
         {
             base.Setup(cmd, baseDescriptor, colorAttachmentHandles, depthAttachmentHandle, samples);
             baseDescriptor.depthBufferBits = 0;
             baseDescriptor.colorFormat = m_ColorFormat;
-            cmd.GetTemporaryRT(colorAttachmentHandle, baseDescriptor, FilterMode.Bilinear);
+            cmd.GetTemporaryRT(colorAttachmentHandle.id, baseDescriptor, FilterMode.Bilinear);
         }
 
         public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)

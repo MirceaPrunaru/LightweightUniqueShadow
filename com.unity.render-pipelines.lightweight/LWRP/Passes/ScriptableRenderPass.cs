@@ -6,15 +6,15 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
     public abstract class ScriptableRenderPass
     {
         public LightweightForwardRenderer renderer { get; private set; }
-        public int[] colorAttachmentHandles { get; private set; }
+        public RenderTargetHandle[] colorAttachmentHandles { get; private set; }
 
-        public int colorAttachmentHandle { get; private set; }
+        public RenderTargetHandle colorAttachmentHandle { get; private set; }
 
-        public int depthAttachmentHandle { get; private set; }
+        public RenderTargetHandle depthAttachmentHandle { get; private set; }
 
         public TextureDimension textureDimension { get; private set; }
 
-        public int samples { get; private set; }
+        public SampleCount samples { get; private set; }
 
         protected List<ShaderPassName> m_ShaderPassNames = new List<ShaderPassName>();
 
@@ -23,14 +23,17 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             this.renderer = renderer;
         }
 
-        public virtual void Setup(CommandBuffer cmd, RenderTextureDescriptor baseDescriptor, int[] colorAttachmentHandles = null, int depthAttachmentHandle = -1, int samples = 1)
+
+        public virtual void Setup(CommandBuffer cmd, RenderTextureDescriptor baseDescriptor,
+            RenderTargetHandle[] colorAttachmentHandles,
+            RenderTargetHandle depthAttachmentHandle, SampleCount samples)
         {
             this.colorAttachmentHandles = colorAttachmentHandles;
             this.depthAttachmentHandle = depthAttachmentHandle;
             this.samples = samples;
             colorAttachmentHandle = (colorAttachmentHandles != null && colorAttachmentHandles.Length > 0)
                 ? colorAttachmentHandles[0]
-                : -1;
+                : RenderTargetHandle.BackBuffer;
 
             textureDimension = baseDescriptor.dimension;
         }
@@ -40,17 +43,17 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             if (colorAttachmentHandles != null)
             {
                 for (int i = 0; i < colorAttachmentHandles.Length; ++i)
-                    if (colorAttachmentHandles[i] != -1)
-                        cmd.ReleaseTemporaryRT(colorAttachmentHandles[i]);
+                    if (colorAttachmentHandles[i] != RenderTargetHandle.BackBuffer)
+                        cmd.ReleaseTemporaryRT(colorAttachmentHandles[i].id);
             }
 
-            if (depthAttachmentHandle != -1)
-                cmd.ReleaseTemporaryRT(depthAttachmentHandle);
+            if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
+                cmd.ReleaseTemporaryRT(depthAttachmentHandle.id);
         }
 
         public abstract void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData);
 
-        public RenderTargetIdentifier GetSurface(int handle)
+        public RenderTargetIdentifier GetSurface(RenderTargetHandle handle)
         {
             if (renderer == null)
             {
