@@ -2,6 +2,7 @@ using UnityEngine.Rendering;
 
 namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
+
     public class ScreenSpaceShadowResolvePass : ScriptableRenderPass
     {
         RenderTextureFormat m_ColorFormat;

@@ -7,9 +7,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         //RenderTextureFormat m_ColorFormat;
         Material m_BlitMaterial;
 
-        // Depth Copy Pass
-        Material m_DepthCopyMaterial;
-
         // Opaque Copy Pass
         Material m_SamplingMaterial;
         float[] m_OpaqueScalerValues = {1.0f, 0.5f, 0.25f, 0.25f};
@@ -31,9 +28,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
 
             m_BlitMaterial = renderer.GetMaterial(MaterialHandles.Blit);
-
-            // Copy Depth Pass
-            m_DepthCopyMaterial = renderer.GetMaterial(MaterialHandles.DepthCopy);
 
             // Copy Opaque Color Pass
             m_SamplingMaterial = renderer.GetMaterial(MaterialHandles.Sampling);
@@ -79,10 +73,18 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
             if (renderingData.cameraData.postProcessEnabled &&
                 renderingData.cameraData.postProcessLayer.HasOpaqueOnlyEffects(renderer.postProcessRenderContext))
-                OpaquePostProcessSubPass(ref context, ref renderingData.cameraData);
+            {
+                var renderPostOpaque = new OpaquePostProcessPass(renderer);
+                renderPostOpaque.Setup(descriptor, colorAttachmentHandle);
+                renderPostOpaque.Execute(ref context, ref cullResults, ref renderingData);
+            }
 
             if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
-                CopyDepthSubPass(ref context, ref renderingData.cameraData);
+            {
+                var copyDepth = new CopyDepthPass(renderer);
+                copyDepth.Setup(depthAttachmentHandle);
+                copyDepth.Execute(ref context, ref cullResults, ref renderingData);
+            }
 
             if (renderingData.cameraData.requiresOpaqueTexture)
                 CopyColorSubpass(ref context, ref renderingData.cameraData);
@@ -92,7 +94,11 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             renderForwardTransparent.Execute(ref context, ref cullResults, ref renderingData);
 
             if (renderingData.cameraData.postProcessEnabled)
-                PostProcessPass(ref context, ref renderingData.cameraData);
+            {
+                var renderPost = new TransparentPostProcessPass(renderer);
+                renderPost.Setup(descriptor, colorAttachmentHandle);
+                renderPost.Execute(ref context, ref cullResults, ref renderingData);
+            }
             else if (!renderingData.cameraData.isOffscreenRender && colorAttachmentHandle != RenderTargetHandle.BackBuffer)
                 FinalBlitPass(ref context, ref renderingData.cameraData);
 
@@ -175,66 +181,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 cmd.Blit(GetSurface(colorAttachmentHandle), BuiltinRenderTextureType.CameraTarget, material);
             }
 
-            context.ExecuteCommandBuffer(cmd);
-            CommandBufferPool.Release(cmd);
-        }
-
-
-        // TODO: move to postfx pass
-        void PostProcessPass(ref ScriptableRenderContext context, ref CameraData cameraData)
-        {
-            CommandBuffer cmd = CommandBufferPool.Get("Render PostProcess Effects");
-            LightweightPipeline.RenderPostProcess(cmd, renderer.postProcessRenderContext, ref cameraData, descriptor.colorFormat, GetSurface(colorAttachmentHandle), BuiltinRenderTextureType.CameraTarget, false);
-            context.ExecuteCommandBuffer(cmd);
-            CommandBufferPool.Release(cmd);
-        }
-
-
-        void OpaquePostProcessSubPass(ref ScriptableRenderContext context, ref CameraData cameraData)
-        {
-            CommandBuffer cmd = CommandBufferPool.Get("Render Opaque PostProcess Effects");
-
-            RenderTargetIdentifier source = GetSurface(colorAttachmentHandle);
-            LightweightPipeline.RenderPostProcess(cmd, renderer.postProcessRenderContext, ref cameraData, descriptor.colorFormat, source, GetSurface(colorAttachmentHandle), true);
-            context.ExecuteCommandBuffer(cmd);
-            CommandBufferPool.Release(cmd);
-        }
-
-        void CopyDepthSubPass(ref ScriptableRenderContext context, ref CameraData cameraData)
-        {
-            CommandBuffer cmd = CommandBufferPool.Get("Depth Copy");
-            RenderTargetIdentifier depthSurface = GetSurface(depthAttachmentHandle);
-            RenderTargetIdentifier copyDepthSurface = GetSurface(RenderTargetHandles.DepthTexture);
-
-            RenderTextureDescriptor descriptor = renderer.CreateRTDesc(ref cameraData);
-            descriptor.colorFormat = RenderTextureFormat.Depth;
-            descriptor.depthBufferBits = 32; //TODO: fix this ;
-            descriptor.msaaSamples = 1;
-            descriptor.bindMS = false;
-            cmd.GetTemporaryRT(RenderTargetHandles.DepthTexture.id, descriptor, FilterMode.Point);
-
-            if (cameraData.msaaSamples > 1)
-            {
-                cmd.DisableShaderKeyword(LightweightKeywordStrings.DepthNoMsaa);
-                if (cameraData.msaaSamples == 4)
-                {
-                    cmd.DisableShaderKeyword(LightweightKeywordStrings.DepthMsaa2);
-                    cmd.EnableShaderKeyword(LightweightKeywordStrings.DepthMsaa4);
-                }
-                else
-                {
-                    cmd.EnableShaderKeyword(LightweightKeywordStrings.DepthMsaa2);
-                    cmd.DisableShaderKeyword(LightweightKeywordStrings.DepthMsaa4);
-                }
-                cmd.Blit(depthSurface, copyDepthSurface, m_DepthCopyMaterial);
-            }
-            else
-            {
-                cmd.EnableShaderKeyword(LightweightKeywordStrings.DepthNoMsaa);
-                cmd.DisableShaderKeyword(LightweightKeywordStrings.DepthMsaa2);
-                cmd.DisableShaderKeyword(LightweightKeywordStrings.DepthMsaa4);
-                LightweightPipeline.CopyTexture(cmd, depthSurface, copyDepthSurface, m_DepthCopyMaterial);
-            }
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
