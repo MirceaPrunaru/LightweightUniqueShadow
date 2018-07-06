@@ -10,7 +10,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
         RenderTexture m_DirectionalShadowmapTexture;
         RenderTextureFormat m_ShadowmapFormat;
-        RenderTextureDescriptor m_DirectionalShadowmapDescriptor;
 
         Matrix4x4[] m_DirectionalShadowMatrices;
         ShadowSliceData[] m_CascadeSlices;
@@ -110,7 +109,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 m_DirectionalShadowmapTexture.filterMode = FilterMode.Bilinear;
                 m_DirectionalShadowmapTexture.wrapMode = TextureWrapMode.Clamp;
                 SetRenderTarget(cmd, m_DirectionalShadowmapTexture, RenderBufferLoadAction.DontCare,
-                    RenderBufferStoreAction.Store, ClearFlag.Depth, Color.black);
+                    RenderBufferStoreAction.Store, ClearFlag.Depth, Color.black, TextureDimension.Tex2D);
 
                 bool success = false;
                 for (int cascadeIndex = 0; cascadeIndex < m_ShadowCasterCascadesCount; ++cascadeIndex)

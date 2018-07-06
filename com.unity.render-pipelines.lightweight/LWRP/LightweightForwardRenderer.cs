@@ -78,33 +78,27 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
     public class DefaultLWRenderer : IRendererSetup
     {
-        [NonSerialized] private ScriptableRenderPass[] m_RenderPassSet = null;
+        private DepthOnlyPass m_DepthOnlyPass;
+        private DirectionalShadowsPass m_DirectionalShadowPass;
+        private LocalShadowsPass m_LocalShadowPass;
+        private SetupForwardRendering m_SetupForwardRendering;
+        private ScreenSpaceShadowResolvePass m_ScreenSpaceShadowResovePass;
+        private ForwardLitPass m_ForwardLitPass;
 
-        public enum RenderPassHandles : int
-        {
-            DepthPrepass,
-            DirectionalShadows,
-            LocalShadows,
-            SetupForwardRendering,
-            ScreenSpaceShadowResolve,
-            ForwardLit,
-            Count,
-        }
+        private bool m_Initialized = false;
 
         private void Init(LightweightForwardRenderer renderer)
         {
-            if (m_RenderPassSet != null)
+            if (m_Initialized)
                 return;
 
-            m_RenderPassSet = new ScriptableRenderPass[]
-            {
-                new DepthOnlyPass(renderer),
-                new DirectionalShadowsPass(renderer),
-                new LocalShadowsPass(renderer),
-                new SetupForwardRendering(renderer),
-                new ScreenSpaceShadowResolvePass(renderer),
-                new ForwardLitPass(renderer),
-            };
+            m_DepthOnlyPass = new DepthOnlyPass(renderer);
+            m_DirectionalShadowPass = new DirectionalShadowsPass(renderer);
+            m_LocalShadowPass = new LocalShadowsPass(renderer);
+            m_SetupForwardRendering = new SetupForwardRendering(renderer);
+            m_ScreenSpaceShadowResovePass = new ScreenSpaceShadowResolvePass(renderer);
+            m_ForwardLitPass = new ForwardLitPass(renderer);
+            m_Initialized = true;
         }
 
         public void Setup(LightweightForwardRenderer renderer, ref ScriptableRenderContext context,
@@ -131,52 +125,36 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             CommandBuffer cmd = CommandBufferPool.Get("Setup Rendering");
 
             if (renderingData.shadowData.renderDirectionalShadows)
-            {
-                var pass = m_RenderPassSet[(int) RenderPassHandles.DirectionalShadows];
-                pass.Setup(shadowDescriptor, null, RenderTargetHandle.BackBuffer, SampleCount.One);
-                renderer.EnqueuePass(pass);
-            }
+                renderer.EnqueuePass(m_DirectionalShadowPass);
 
             if (renderingData.shadowData.renderLocalShadows)
-            {
-                var pass = m_RenderPassSet[(int) RenderPassHandles.LocalShadows];
-                pass.Setup(shadowDescriptor, null, RenderTargetHandle.BackBuffer, SampleCount.One);
-                renderer.EnqueuePass(pass);
-            }
+                renderer.EnqueuePass(m_LocalShadowPass);
 
-            var setup = m_RenderPassSet[(int) RenderPassHandles.SetupForwardRendering];
-            renderer.EnqueuePass(setup);
+            renderer.EnqueuePass(m_SetupForwardRendering);
 
             if (requiresDepthPrepass)
             {
-                var pass = m_RenderPassSet[(int) RenderPassHandles.DepthPrepass];
-                pass.Setup(baseDescriptor, null, RenderTargetHandles.DepthTexture, SampleCount.One);
-                renderer.EnqueuePass(pass);
+                m_DepthOnlyPass.Setup(baseDescriptor, RenderTargetHandles.DepthTexture, SampleCount.One);
+                renderer.EnqueuePass(m_DepthOnlyPass);
             }
 
             if (renderingData.shadowData.renderDirectionalShadows &&
                 renderingData.shadowData.requiresScreenSpaceShadowResolve)
             {
-                var pass2 = m_RenderPassSet[(int) RenderPassHandles.ScreenSpaceShadowResolve];
-                pass2.Setup(baseDescriptor, new[] {RenderTargetHandles.ScreenSpaceShadowmap},
-                    RenderTargetHandle.BackBuffer, SampleCount.One);
-                renderer.EnqueuePass(pass2);
+                m_ScreenSpaceShadowResovePass.Setup(baseDescriptor, RenderTargetHandles.ScreenSpaceShadowmap);
+                renderer.EnqueuePass(m_ScreenSpaceShadowResovePass);
             }
 
             bool requiresDepthAttachment = requiresCameraDepth && !requiresDepthPrepass;
             bool requiresColorAttachment =
-                LightweightForwardRenderer.RequiresIntermediateColorTexture(ref renderingData.cameraData,
+                LightweightForwardRenderer.RequiresIntermediateColorTexture(
+                    ref renderingData.cameraData,
                     baseDescriptor,
                     requiresDepthAttachment);
-            RenderTargetHandle[] colorHandles = (requiresColorAttachment) ? new[] {RenderTargetHandles.Color} : null;
-            RenderTargetHandle depthHandle = (requiresDepthAttachment)
-                ? RenderTargetHandles.DepthAttachment
-                : RenderTargetHandle.BackBuffer;
-
-
-            var pass3 = m_RenderPassSet[(int) RenderPassHandles.ForwardLit];
-            pass3.Setup(baseDescriptor, colorHandles, depthHandle, (SampleCount) renderingData.cameraData.msaaSamples);
-            renderer.EnqueuePass(pass3);
+            RenderTargetHandle colorHandles = (requiresColorAttachment) ? RenderTargetHandles.Color : RenderTargetHandle.BackBuffer;
+            RenderTargetHandle depthHandle = (requiresDepthAttachment) ? RenderTargetHandles.DepthAttachment : RenderTargetHandle.BackBuffer;
+            m_ForwardLitPass.Setup(baseDescriptor, colorHandles, depthHandle, (SampleCount) renderingData.cameraData.msaaSamples);
+            renderer.EnqueuePass(m_ForwardLitPass);
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);

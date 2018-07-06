@@ -107,7 +107,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 m_LocalShadowmapTexture.wrapMode = TextureWrapMode.Clamp;
 
                 SetRenderTarget(cmd, m_LocalShadowmapTexture, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store,
-                    ClearFlag.Depth, Color.black);
+                    ClearFlag.Depth, Color.black, TextureDimension.Tex2D);
 
                 for (int i = 0; i < localLightsCount; ++i)
                 {

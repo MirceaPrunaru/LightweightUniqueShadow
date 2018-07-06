@@ -83,27 +83,45 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         }
 
         const string k_ForwardLitpassTag = "Forward Lit Setup";
+
+        private RenderTargetHandle colorAttachmentHandle { get; set; }
+        private RenderTargetHandle depthAttachmentHandle { get; set; }
+        private RenderTextureDescriptor descriptor { get; set; }
+        private SampleCount samples { get; set; }
+
+        public void Setup(
+            RenderTextureDescriptor baseDescriptor,
+            RenderTargetHandle colorAttachmentHandle,
+            RenderTargetHandle depthAttachmentHandle,
+            SampleCount samples)
+        {
+            this.colorAttachmentHandle = colorAttachmentHandle;
+            this.depthAttachmentHandle = depthAttachmentHandle;
+            this.samples = samples;
+            descriptor = baseDescriptor;
+        }
+
         public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get(k_ForwardLitpassTag);
             m_ColorFormat = descriptor.colorFormat;
             if (colorAttachmentHandle != RenderTargetHandle.BackBuffer)
             {
-                var descriptor2 = descriptor;
-                descriptor2.depthBufferBits = k_DepthStencilBufferBits;  // TODO: does the color RT always need depth?
-                descriptor2.sRGB = true;
-                descriptor2.msaaSamples = (int)samples;
-                cmd.GetTemporaryRT(colorAttachmentHandle.id, descriptor2, FilterMode.Bilinear);
+                var colorDescriptor = descriptor;
+                colorDescriptor.depthBufferBits = k_DepthStencilBufferBits;  // TODO: does the color RT always need depth?
+                colorDescriptor.sRGB = true;
+                colorDescriptor.msaaSamples = (int)samples;
+                cmd.GetTemporaryRT(colorAttachmentHandle.id, colorDescriptor, FilterMode.Bilinear);
             }
 
             if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
             {
-                var descriptor2 = descriptor;
-                descriptor2.colorFormat = RenderTextureFormat.Depth;
-                descriptor2.depthBufferBits = k_DepthStencilBufferBits;
-                descriptor2.msaaSamples = (int)samples;
-                descriptor2.bindMS = (int)samples > 1;
-                cmd.GetTemporaryRT(depthAttachmentHandle.id, descriptor2, FilterMode.Point);
+                var depthDescriptor = descriptor;
+                depthDescriptor.colorFormat = RenderTextureFormat.Depth;
+                depthDescriptor.depthBufferBits = k_DepthStencilBufferBits;
+                depthDescriptor.msaaSamples = (int)samples;
+                depthDescriptor.bindMS = (int)samples > 1;
+                cmd.GetTemporaryRT(depthAttachmentHandle.id, depthDescriptor, FilterMode.Point);
             }
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
@@ -139,6 +157,21 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             {
                 context.StopMultiEye(camera);
                 context.StereoEndRender(camera);
+            }
+        }
+
+        public override void Dispose(CommandBuffer cmd)
+        {
+            if (colorAttachmentHandle != RenderTargetHandle.BackBuffer)
+            {
+                cmd.ReleaseTemporaryRT(colorAttachmentHandle.id);
+                colorAttachmentHandle = RenderTargetHandle.BackBuffer;
+            }
+
+            if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
+            {
+                cmd.ReleaseTemporaryRT(depthAttachmentHandle.id);
+                depthAttachmentHandle = RenderTargetHandle.BackBuffer;
             }
         }
 
@@ -294,13 +327,23 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             if (colorAttachmentHandle != RenderTargetHandle.BackBuffer)
             {
                 if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
-                    SetRenderTarget(cmd, GetSurface(colorAttachmentHandle), loadOp, storeOp, GetSurface(depthAttachmentHandle), loadOp, storeOp, clearFlag, clearColor);
+                    SetRenderTarget(
+                        cmd,
+                        GetSurface(colorAttachmentHandle),
+                        loadOp,
+                        storeOp,
+                        GetSurface(depthAttachmentHandle),
+                        loadOp,
+                        storeOp,
+                        clearFlag,
+                        clearColor,
+                        descriptor.dimension);
                 else
-                    SetRenderTarget(cmd, GetSurface(colorAttachmentHandle), loadOp, storeOp, clearFlag, clearColor);
+                    SetRenderTarget(cmd, GetSurface(colorAttachmentHandle), loadOp, storeOp, clearFlag, clearColor, descriptor.dimension);
             }
             else
             {
-                SetRenderTarget(cmd, BuiltinRenderTextureType.CameraTarget, loadOp, storeOp, clearFlag, clearColor);
+                SetRenderTarget(cmd, BuiltinRenderTextureType.CameraTarget, loadOp, storeOp, clearFlag, clearColor, descriptor.dimension);
             }
         }
 
@@ -366,7 +409,15 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             // We need to handle viewport on a RT. We do it by rendering a fullscreen quad + viewport
             if (!cameraData.isDefaultViewport)
             {
-                SetRenderTarget(cmd, BuiltinRenderTextureType.CameraTarget, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, ClearFlag.None, Color.black);
+                SetRenderTarget(
+                    cmd,
+                    BuiltinRenderTextureType.CameraTarget,
+                    RenderBufferLoadAction.DontCare,
+                    RenderBufferStoreAction.Store,
+                    ClearFlag.None,
+                    Color.black,
+                    descriptor.dimension);
+
                 cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
                 cmd.SetViewport(cameraData.camera.pixelRect);
                 LightweightPipeline.DrawFullScreen(cmd, material);

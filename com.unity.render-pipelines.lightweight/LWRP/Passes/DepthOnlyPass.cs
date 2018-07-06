@@ -8,15 +8,15 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
         int kDepthBufferBits = 32;
 
-        public DepthOnlyPass(LightweightForwardRenderer renderer) : base(renderer)
-        {
-            RegisterShaderPassName("DepthOnly");
-        }
+        private RenderTargetHandle depthAttachmentHandle { get; set; }
+        private RenderTextureDescriptor descriptor { get; set; }
 
-        public override void Setup(RenderTextureDescriptor baseDescriptor,
-            RenderTargetHandle[] colorAttachmentHandles,
-            RenderTargetHandle depthAttachmentHandle, SampleCount samples)
+        public void Setup(
+            RenderTextureDescriptor baseDescriptor,
+            RenderTargetHandle depthAttachmentHandle,
+            SampleCount samples)
         {
+            this.depthAttachmentHandle = depthAttachmentHandle;
             baseDescriptor.colorFormat = RenderTextureFormat.Depth;
             baseDescriptor.depthBufferBits = kDepthBufferBits;
 
@@ -26,7 +26,12 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 baseDescriptor.msaaSamples = (int)samples;
             }
 
-            base.Setup(baseDescriptor, colorAttachmentHandles, depthAttachmentHandle: depthAttachmentHandle, samples: samples);
+            descriptor = baseDescriptor;
+        }
+
+        public DepthOnlyPass(LightweightForwardRenderer renderer) : base(renderer)
+        {
+            RegisterShaderPassName("DepthOnly");
         }
 
         public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
@@ -35,8 +40,15 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             using (new ProfilingSample(cmd, k_DepthPrepassTag))
             {
                 cmd.GetTemporaryRT(depthAttachmentHandle.id, descriptor, FilterMode.Point);
-                SetRenderTarget(cmd, GetSurface(depthAttachmentHandle), RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store,
-                    ClearFlag.Depth, Color.black);
+                SetRenderTarget(
+                    cmd,
+                    GetSurface(depthAttachmentHandle),
+                    RenderBufferLoadAction.DontCare,
+                    RenderBufferStoreAction.Store,
+                    ClearFlag.Depth,
+                    Color.black,
+                    descriptor.dimension);
+
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
 
@@ -54,5 +66,16 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
+
+
+        public override void Dispose(CommandBuffer cmd)
+        {
+            if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
+            {
+                cmd.ReleaseTemporaryRT(depthAttachmentHandle.id);
+                depthAttachmentHandle = RenderTargetHandle.BackBuffer;
+            }
+        }
+
     }
 }

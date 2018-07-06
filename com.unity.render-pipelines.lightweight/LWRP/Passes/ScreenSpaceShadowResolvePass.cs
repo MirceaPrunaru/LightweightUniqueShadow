@@ -16,14 +16,18 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             m_ScreenSpaceShadowsMaterial = renderer.GetMaterial(MaterialHandles.ScrenSpaceShadow);
         }
 
-        public override void Setup(RenderTextureDescriptor baseDescriptor,
-            RenderTargetHandle[] colorAttachmentHandles,
-            RenderTargetHandle depthAttachmentHandle, SampleCount samples)
+        private RenderTargetHandle colorAttachmentHandle { get; set; }
+        private RenderTextureDescriptor descriptor { get; set; }
+
+        public void Setup(
+            RenderTextureDescriptor baseDescriptor,
+            RenderTargetHandle colorAttachmentHandle)
         {
+            this.colorAttachmentHandle = colorAttachmentHandle;
 
             baseDescriptor.depthBufferBits = 0;
             baseDescriptor.colorFormat = m_ColorFormat;
-            base.Setup(baseDescriptor, colorAttachmentHandles, depthAttachmentHandle, samples);
+            descriptor = baseDescriptor;
         }
 
         public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
@@ -43,7 +47,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             // An alternative would be DrawProcedural, but that would require further changes in the shader.
             RenderTargetIdentifier screenSpaceOcclusionTexture = GetSurface(colorAttachmentHandle);
             SetRenderTarget(cmd, screenSpaceOcclusionTexture, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store,
-                ClearFlag.Color | ClearFlag.Depth, Color.white);
+                ClearFlag.Color | ClearFlag.Depth, Color.white, descriptor.dimension);
             cmd.Blit(screenSpaceOcclusionTexture, screenSpaceOcclusionTexture, m_ScreenSpaceShadowsMaterial);
 
             if (renderingData.cameraData.isStereoEnabled)
@@ -56,6 +60,15 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             else
                 context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
+        }
+
+        public override void Dispose(CommandBuffer cmd)
+        {
+            if (colorAttachmentHandle != RenderTargetHandle.BackBuffer)
+            {
+                cmd.ReleaseTemporaryRT(colorAttachmentHandle.id);
+                colorAttachmentHandle = RenderTargetHandle.BackBuffer;
+            }
         }
 
         void SetShadowCollectPassKeywords(CommandBuffer cmd, ref ShadowData shadowData)
