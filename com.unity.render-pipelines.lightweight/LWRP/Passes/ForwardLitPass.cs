@@ -82,35 +82,32 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             m_SampleOffsetShaderHandle = Shader.PropertyToID("_SampleOffset");
         }
 
-        public override void Setup(CommandBuffer cmd, RenderTextureDescriptor baseDescriptor,
-            RenderTargetHandle[] colorAttachmentHandles,
-            RenderTargetHandle depthAttachmentHandle, SampleCount samples)
+        const string k_ForwardLitpassTag = "Forward Lit Setup";
+        public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
         {
-            base.Setup(cmd, baseDescriptor, colorAttachmentHandles, depthAttachmentHandle: depthAttachmentHandle, samples: samples);
-
-            m_ColorFormat = baseDescriptor.colorFormat;
+            CommandBuffer cmd = CommandBufferPool.Get(k_ForwardLitpassTag);
+            m_ColorFormat = descriptor.colorFormat;
             if (colorAttachmentHandle != RenderTargetHandle.BackBuffer)
             {
-                var descriptor = baseDescriptor;
-                descriptor.depthBufferBits = k_DepthStencilBufferBits;  // TODO: does the color RT always need depth?
-                descriptor.sRGB = true;
-                descriptor.msaaSamples = (int)samples;
-                cmd.GetTemporaryRT(colorAttachmentHandle.id, descriptor, FilterMode.Bilinear);
+                var descriptor2 = descriptor;
+                descriptor2.depthBufferBits = k_DepthStencilBufferBits;  // TODO: does the color RT always need depth?
+                descriptor2.sRGB = true;
+                descriptor2.msaaSamples = (int)samples;
+                cmd.GetTemporaryRT(colorAttachmentHandle.id, descriptor2, FilterMode.Bilinear);
             }
 
             if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
             {
-                var descriptor = baseDescriptor;
-                descriptor.colorFormat = RenderTextureFormat.Depth;
-                descriptor.depthBufferBits = k_DepthStencilBufferBits;
-                descriptor.msaaSamples = (int)samples;
-                descriptor.bindMS = (int)samples > 1;
-                cmd.GetTemporaryRT(depthAttachmentHandle.id, descriptor, FilterMode.Point);
+                var descriptor2 = descriptor;
+                descriptor2.colorFormat = RenderTextureFormat.Depth;
+                descriptor2.depthBufferBits = k_DepthStencilBufferBits;
+                descriptor2.msaaSamples = (int)samples;
+                descriptor2.bindMS = (int)samples > 1;
+                cmd.GetTemporaryRT(depthAttachmentHandle.id, descriptor2, FilterMode.Point);
             }
-        }
+            context.ExecuteCommandBuffer(cmd);
+            CommandBufferPool.Release(cmd);
 
-        public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
-        {
             Camera camera = renderingData.cameraData.camera;
             bool dynamicBatching = renderingData.supportsDynamicBatching;
             SetupShaderConstants(ref context, ref renderingData.cameraData, ref renderingData.lightData, ref renderingData.shadowData);

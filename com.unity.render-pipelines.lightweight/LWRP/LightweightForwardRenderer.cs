@@ -91,7 +91,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             Count,
         }
 
-
         private void Init(LightweightForwardRenderer renderer)
         {
             if (m_RenderPassSet != null)
@@ -134,14 +133,14 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             if (renderingData.shadowData.renderDirectionalShadows)
             {
                 var pass = m_RenderPassSet[(int) RenderPassHandles.DirectionalShadows];
-                pass.Setup(cmd, shadowDescriptor, null, RenderTargetHandle.BackBuffer, SampleCount.One);
+                pass.Setup(shadowDescriptor, null, RenderTargetHandle.BackBuffer, SampleCount.One);
                 renderer.EnqueuePass(pass);
             }
 
             if (renderingData.shadowData.renderLocalShadows)
             {
                 var pass = m_RenderPassSet[(int) RenderPassHandles.LocalShadows];
-                pass.Setup(cmd, shadowDescriptor, null, RenderTargetHandle.BackBuffer, SampleCount.One);
+                pass.Setup(shadowDescriptor, null, RenderTargetHandle.BackBuffer, SampleCount.One);
                 renderer.EnqueuePass(pass);
             }
 
@@ -151,7 +150,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             if (requiresDepthPrepass)
             {
                 var pass = m_RenderPassSet[(int) RenderPassHandles.DepthPrepass];
-                pass.Setup(cmd, baseDescriptor, null, RenderTargetHandles.DepthTexture, SampleCount.One);
+                pass.Setup(baseDescriptor, null, RenderTargetHandles.DepthTexture, SampleCount.One);
                 renderer.EnqueuePass(pass);
             }
 
@@ -159,7 +158,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 renderingData.shadowData.requiresScreenSpaceShadowResolve)
             {
                 var pass2 = m_RenderPassSet[(int) RenderPassHandles.ScreenSpaceShadowResolve];
-                pass2.Setup(cmd, baseDescriptor, new[] {RenderTargetHandles.ScreenSpaceShadowmap},
+                pass2.Setup(baseDescriptor, new[] {RenderTargetHandles.ScreenSpaceShadowmap},
                     RenderTargetHandle.BackBuffer, SampleCount.One);
                 renderer.EnqueuePass(pass2);
             }
@@ -176,13 +175,11 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
 
             var pass3 = m_RenderPassSet[(int) RenderPassHandles.ForwardLit];
-            pass3.Setup(cmd, baseDescriptor, colorHandles, depthHandle,
-                (SampleCount) renderingData.cameraData.msaaSamples);
+            pass3.Setup(baseDescriptor, colorHandles, depthHandle, (SampleCount) renderingData.cameraData.msaaSamples);
             renderer.EnqueuePass(pass3);
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
-
         }
     }
 

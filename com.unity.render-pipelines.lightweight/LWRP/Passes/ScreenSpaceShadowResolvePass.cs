@@ -16,14 +16,14 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             m_ScreenSpaceShadowsMaterial = renderer.GetMaterial(MaterialHandles.ScrenSpaceShadow);
         }
 
-        public override void Setup(CommandBuffer cmd, RenderTextureDescriptor baseDescriptor,
+        public override void Setup(RenderTextureDescriptor baseDescriptor,
             RenderTargetHandle[] colorAttachmentHandles,
             RenderTargetHandle depthAttachmentHandle, SampleCount samples)
         {
-            base.Setup(cmd, baseDescriptor, colorAttachmentHandles, depthAttachmentHandle, samples);
+
             baseDescriptor.depthBufferBits = 0;
             baseDescriptor.colorFormat = m_ColorFormat;
-            cmd.GetTemporaryRT(colorAttachmentHandle.id, baseDescriptor, FilterMode.Bilinear);
+            base.Setup(baseDescriptor, colorAttachmentHandles, depthAttachmentHandle, samples);
         }
 
         public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
@@ -32,6 +32,8 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 return;
 
             CommandBuffer cmd = CommandBufferPool.Get("Collect Shadows");
+
+            cmd.GetTemporaryRT(colorAttachmentHandle.id, descriptor, FilterMode.Bilinear);
             SetShadowCollectPassKeywords(cmd, ref renderingData.shadowData);
 
             // Note: The source isn't actually 'used', but there's an engine peculiarity (bug) that
