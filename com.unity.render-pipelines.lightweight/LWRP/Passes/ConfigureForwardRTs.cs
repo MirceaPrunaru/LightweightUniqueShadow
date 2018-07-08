@@ -50,5 +50,20 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
+        
+        public override void Dispose(CommandBuffer cmd)
+        {
+            if (colorAttachmentHandle != RenderTargetHandle.BackBuffer)
+            {
+                cmd.ReleaseTemporaryRT(colorAttachmentHandle.id);
+                colorAttachmentHandle = RenderTargetHandle.BackBuffer;
+            }
+
+            if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
+            {
+                cmd.ReleaseTemporaryRT(depthAttachmentHandle.id);
+                depthAttachmentHandle = RenderTargetHandle.BackBuffer;
+            }
+        }
     }
 }

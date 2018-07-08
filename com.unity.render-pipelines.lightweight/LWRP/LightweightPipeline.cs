@@ -11,6 +11,12 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
     public partial class LightweightPipeline : RenderPipeline
     {
+        private static class PerFrameBuffer
+        {
+            public static int _GlossyEnvironmentColor;
+            public static int _SubtractiveShadowColor;
+        }
+        
         public LightweightPipelineAsset pipelineAsset { get; private set; }
 
         CameraComparer m_CameraComparer = new CameraComparer();
@@ -31,7 +37,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             PerFrameBuffer._GlossyEnvironmentColor = Shader.PropertyToID("_GlossyEnvironmentColor");
             PerFrameBuffer._SubtractiveShadowColor = Shader.PropertyToID("_SubtractiveShadowColor");
 
-            PerCameraBuffer._ScaledScreenParams = Shader.PropertyToID("_ScaledScreenParams");
+            LwForwardPass.PerCameraBuffer._ScaledScreenParams = Shader.PropertyToID("_ScaledScreenParams");
             m_Renderer = new LightweightForwardRenderer(asset);
 
             // Let engine know we have MSAA on for cases where we support MSAA backbuffer
@@ -382,7 +388,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         {
             float cameraWidth = (float)cameraData.camera.pixelWidth * cameraData.renderScale;
             float cameraHeight = (float)cameraData.camera.pixelWidth * cameraData.renderScale;
-            Shader.SetGlobalVector(PerCameraBuffer._ScaledScreenParams, new Vector4(cameraWidth, cameraHeight, 1.0f + 1.0f / cameraWidth, 1.0f + 1.0f / cameraHeight));
+            Shader.SetGlobalVector(LwForwardPass.PerCameraBuffer._ScaledScreenParams, new Vector4(cameraWidth, cameraHeight, 1.0f + 1.0f / cameraWidth, 1.0f + 1.0f / cameraHeight));
         }
 
         bool IsStereoEnabled(Camera camera)

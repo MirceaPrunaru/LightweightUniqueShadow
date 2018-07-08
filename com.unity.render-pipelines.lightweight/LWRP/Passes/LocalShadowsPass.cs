@@ -6,6 +6,17 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
     public class LocalShadowsPass : ScriptableRenderPass
     {
+        private static class LocalShadowConstantBuffer
+        {
+            public static int _LocalWorldToShadowAtlas;
+            public static int _LocalShadowStrength;
+            public static int _LocalShadowOffset0;
+            public static int _LocalShadowOffset1;
+            public static int _LocalShadowOffset2;
+            public static int _LocalShadowOffset3;
+            public static int _LocalShadowmapSize;
+        }
+        
         const int k_ShadowmapBufferBits = 16;
         RenderTexture m_LocalShadowmapTexture;
         RenderTextureFormat m_LocalShadowmapFormat;

@@ -4,6 +4,22 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
     public class DirectionalShadowsPass : ScriptableRenderPass
     {
+        private static class DirectionalShadowConstantBuffer
+        {
+            public static int _WorldToShadow;
+            public static int _ShadowData;
+            public static int _DirShadowSplitSpheres0;
+            public static int _DirShadowSplitSpheres1;
+            public static int _DirShadowSplitSpheres2;
+            public static int _DirShadowSplitSpheres3;
+            public static int _DirShadowSplitSphereRadii;
+            public static int _ShadowOffset0;
+            public static int _ShadowOffset1;
+            public static int _ShadowOffset2;
+            public static int _ShadowOffset3;
+            public static int _ShadowmapSize;
+        }
+        
         const int k_MaxCascades = 4;
         const int k_ShadowmapBufferBits = 16;
         int m_ShadowCasterCascadesCount;

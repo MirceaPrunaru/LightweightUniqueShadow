@@ -7,6 +7,24 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
     public abstract class LwForwardPass : ScriptableRenderPass
     {
+        public static class PerCameraBuffer
+        {
+            public static int _MainLightPosition;
+            public static int _MainLightColor;
+            public static int _MainLightCookie;
+            public static int _WorldToLight;
+
+            public static int _AdditionalLightCount;
+            public static int _AdditionalLightPosition;
+            public static int _AdditionalLightColor;
+            public static int _AdditionalLightDistanceAttenuation;
+            public static int _AdditionalLightSpotDir;
+            public static int _AdditionalLightSpotAttenuation;
+
+            public static int _LightIndexBuffer;
+
+            public static int _ScaledScreenParams;
+        }
 
         private RenderTargetHandle colorAttachmentHandle { get; set; }
         private RenderTargetHandle depthAttachmentHandle { get; set; }
@@ -40,7 +58,18 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
         protected LwForwardPass(LightweightForwardRenderer renderer) : base(renderer)
         {
-
+            PerCameraBuffer._MainLightPosition = Shader.PropertyToID("_MainLightPosition");
+            PerCameraBuffer._MainLightColor = Shader.PropertyToID("_MainLightColor");
+            PerCameraBuffer._MainLightCookie = Shader.PropertyToID("_MainLightCookie");
+            PerCameraBuffer._WorldToLight = Shader.PropertyToID("_WorldToLight");
+            PerCameraBuffer._AdditionalLightCount = Shader.PropertyToID("_AdditionalLightCount");
+            PerCameraBuffer._AdditionalLightPosition = Shader.PropertyToID("_AdditionalLightPosition");
+            PerCameraBuffer._AdditionalLightColor = Shader.PropertyToID("_AdditionalLightColor");
+            PerCameraBuffer._AdditionalLightDistanceAttenuation = Shader.PropertyToID("_AdditionalLightDistanceAttenuation");
+            PerCameraBuffer._AdditionalLightSpotDir = Shader.PropertyToID("_AdditionalLightSpotDir");
+            PerCameraBuffer._AdditionalLightSpotAttenuation = Shader.PropertyToID("_AdditionalLightSpotAttenuation");
+            PerCameraBuffer._LightIndexBuffer = Shader.PropertyToID("_LightIndexBuffer");
+            
             m_ErrorMaterial = renderer.GetMaterial(MaterialHandles.Error);
 
             m_LegacyShaderPassNames = new List<ShaderPassName>();
@@ -58,7 +87,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             m_LightDistanceAttenuations = new Vector4[maxVisibleLocalLights];
             m_LightSpotDirections = new Vector4[maxVisibleLocalLights];
             m_LightSpotAttenuations = new Vector4[maxVisibleLocalLights];
-
 
             RegisterShaderPassName("LightweightForward");
             RegisterShaderPassName("SRPDefaultUnlit");
