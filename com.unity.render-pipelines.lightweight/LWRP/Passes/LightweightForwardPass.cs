@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 
 namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
-    public abstract class LwForwardPass : ScriptableRenderPass
+    public abstract class LightweightForwardPass : ScriptableRenderPass
     {
         public static class PerCameraBuffer
         {
@@ -56,7 +56,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         protected RendererConfiguration rendererConfiguration;
         protected bool dynamicBatching;
 
-        protected LwForwardPass(LightweightForwardRenderer renderer) : base(renderer)
+        protected LightweightForwardPass(LightweightForwardRenderer renderer) : base(renderer)
         {
             PerCameraBuffer._MainLightPosition = Shader.PropertyToID("_MainLightPosition");
             PerCameraBuffer._MainLightColor = Shader.PropertyToID("_MainLightColor");

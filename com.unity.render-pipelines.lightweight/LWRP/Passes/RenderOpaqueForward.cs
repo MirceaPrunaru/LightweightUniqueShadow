@@ -2,7 +2,7 @@ using UnityEngine.Rendering;
 
 namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
-    public class RenderOpaqueForward : LwForwardPass
+    public class RenderOpaqueForward : LightweightForwardPass
     {
         const string k_RenderOpaquesTag = "Render Opaques";
 

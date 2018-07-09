@@ -1,15 +1,16 @@
+using System;
 using UnityEngine.Rendering;
 
 namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
-    public class DefaultLWRenderer : IRendererSetup
+    public class DefaultRendererSetup : IRendererSetup
     {
         private DepthOnlyPass m_DepthOnlyPass;
         private DirectionalShadowsPass m_DirectionalShadowPass;
         private LocalShadowsPass m_LocalShadowPass;
         private SetupForwardRendering m_SetupForwardRendering;
         private ScreenSpaceShadowResolvePass m_ScreenSpaceShadowResovePass;
-        private ConfigureForwardRTs m_ConfigureForwardRTs;
+        private CreateLightweightRenderTextures _mCreateLightweightRenderTextures;
         private BeginXRRendering m_BeginXrRendering;
         private RenderOpaqueForward m_RenderOpaqueForward;
         private OpaquePostProcessPass m_OpaquePostProcessPass;
@@ -20,8 +21,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         private FinalBlitPass m_FinalBlitPass;
         private EndXRRendering m_EndXrRendering;
 
-        private LightweightForwardRenderer m_Renderer;
-
+        [NonSerialized]
         private bool m_Initialized = false;
 
         private void Init(LightweightForwardRenderer renderer)
@@ -34,7 +34,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             m_LocalShadowPass = new LocalShadowsPass(renderer);
             m_SetupForwardRendering = new SetupForwardRendering(renderer);
             m_ScreenSpaceShadowResovePass = new ScreenSpaceShadowResolvePass(renderer);
-            m_ConfigureForwardRTs = new ConfigureForwardRTs(renderer);
+            _mCreateLightweightRenderTextures = new CreateLightweightRenderTextures(renderer);
             m_BeginXrRendering = new BeginXRRendering(renderer);
             m_RenderOpaqueForward = new RenderOpaqueForward(renderer);
             m_OpaquePostProcessPass = new OpaquePostProcessPass(renderer);
@@ -44,8 +44,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             m_TransparentPostProcessPass = new TransparentPostProcessPass(renderer);
             m_FinalBlitPass = new FinalBlitPass(renderer);
             m_EndXrRendering = new EndXRRendering(renderer);
-            m_Renderer = renderer;
-            
+
             m_Initialized = true;
         }
 
@@ -99,19 +98,19 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                     requiresDepthAttachment);
             RenderTargetHandle colorHandle = (requiresColorAttachment) ? RenderTargetHandles.Color : RenderTargetHandle.BackBuffer;
             RenderTargetHandle depthHandle = (requiresDepthAttachment) ? RenderTargetHandles.DepthAttachment : RenderTargetHandle.BackBuffer;
-            
+
             var sampleCount = (SampleCount) renderingData.cameraData.msaaSamples;
-            m_ConfigureForwardRTs.Setup(baseDescriptor, colorHandle, depthHandle, sampleCount);
-            renderer.EnqueuePass(m_ConfigureForwardRTs);
+            _mCreateLightweightRenderTextures.Setup(baseDescriptor, colorHandle, depthHandle, sampleCount);
+            renderer.EnqueuePass(_mCreateLightweightRenderTextures);
 
             if (renderingData.cameraData.isStereoEnabled)
                 renderer.EnqueuePass(m_BeginXrRendering);
 
             Camera camera = renderingData.cameraData.camera;
             bool dynamicBatching = renderingData.supportsDynamicBatching;
-            RendererConfiguration rendererConfiguration = GetRendererConfiguration(renderingData.lightData.totalAdditionalLightsCount);
+            RendererConfiguration rendererConfiguration = LightweightForwardRenderer.GetRendererConfiguration(renderingData.lightData.totalAdditionalLightsCount);
 
-            m_RenderOpaqueForward.Setup(baseDescriptor, colorHandle, depthHandle, GetCameraClearFlag(camera), camera.backgroundColor, rendererConfiguration,dynamicBatching);
+            m_RenderOpaqueForward.Setup(baseDescriptor, colorHandle, depthHandle, LightweightForwardRenderer.GetCameraClearFlag(camera), camera.backgroundColor, rendererConfiguration,dynamicBatching);
             renderer.EnqueuePass(m_RenderOpaqueForward);
 
             if (renderingData.cameraData.postProcessEnabled &&
@@ -135,7 +134,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
             m_RenderTransparentForward.Setup(baseDescriptor, colorHandle, depthHandle, ClearFlag.None, camera.backgroundColor, rendererConfiguration, dynamicBatching);
             renderer.EnqueuePass(m_RenderTransparentForward);
-            
+
             if (renderingData.cameraData.postProcessEnabled)
             {
                 m_TransparentPostProcessPass.Setup(baseDescriptor, colorHandle);
@@ -151,34 +150,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             {
                 renderer.EnqueuePass(m_EndXrRendering);
             }
-        } 
-
-        private static ClearFlag GetCameraClearFlag(Camera camera)
-        {
-            ClearFlag clearFlag = ClearFlag.None;
-            CameraClearFlags cameraClearFlags = camera.clearFlags;
-            if (cameraClearFlags != CameraClearFlags.Nothing)
-            {
-                clearFlag |= ClearFlag.Depth;
-                if (cameraClearFlags == CameraClearFlags.Color || cameraClearFlags == CameraClearFlags.Skybox)
-                    clearFlag |= ClearFlag.Color;
-            }
-
-            return clearFlag;
-        }
-
-        RendererConfiguration GetRendererConfiguration(int localLightsCount)
-        {
-            RendererConfiguration configuration = RendererConfiguration.PerObjectReflectionProbes | RendererConfiguration.PerObjectLightmaps | RendererConfiguration.PerObjectLightProbe;
-            if (localLightsCount > 0)
-            {
-                if ( m_Renderer.useComputeBufferForPerObjectLightIndices)
-                    configuration |= RendererConfiguration.ProvideLightIndices;
-                else
-                    configuration |= RendererConfiguration.PerObjectLightIndices8;
-            }
-
-            return configuration;
         }
     }
 }

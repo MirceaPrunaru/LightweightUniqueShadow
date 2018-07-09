@@ -4,9 +4,8 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
     public class FinalBlitPass : ScriptableRenderPass
     {
-        //RenderTextureFormat m_ColorFormat;
         Material m_BlitMaterial;
-        
+
         private RenderTargetHandle colorAttachmentHandle { get; set; }
         private RenderTextureDescriptor descriptor { get; set; }
 

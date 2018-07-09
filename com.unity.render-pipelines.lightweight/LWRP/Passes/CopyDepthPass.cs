@@ -10,7 +10,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
         public CopyDepthPass(LightweightForwardRenderer renderer) : base(renderer)
         {
-            // Copy Depth Pass
             m_DepthCopyMaterial = renderer.GetMaterial(MaterialHandles.DepthCopy);
         }
 

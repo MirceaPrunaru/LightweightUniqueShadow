@@ -7,75 +7,6 @@ using UnityEngine.XR;
 
 namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
-    public enum MaterialHandles
-    {
-        Error,
-        DepthCopy,
-        Sampling,
-        Blit,
-        ScrenSpaceShadow,
-        Count,
-    }
-
-    public struct RenderTargetHandle
-    {
-        public int id;
-
-        public bool Equals(RenderTargetHandle other)
-        {
-            return id == other.id;
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
-            return obj is RenderTargetHandle && Equals((RenderTargetHandle) obj);
-        }
-
-        public override int GetHashCode()
-        {
-            return id;
-        }
-
-        public static readonly RenderTargetHandle BackBuffer = new RenderTargetHandle {id = -1};
-
-        public static bool operator ==(RenderTargetHandle c1, RenderTargetHandle c2)
-        {
-            return c1.Equals(c2);
-        }
-
-        public static bool operator !=(RenderTargetHandle c1, RenderTargetHandle c2)
-        {
-            return !c1.Equals(c2);
-        }
-    }
-
-    public enum SampleCount
-    {
-        One = 1,
-        Two = 2,
-        Four = 4,
-    }
-
-    public static class RenderTargetHandles
-    {
-        public static RenderTargetHandle Color;
-        public static RenderTargetHandle DepthAttachment;
-        public static RenderTargetHandle DepthTexture;
-        public static RenderTargetHandle OpaqueColor;
-        public static RenderTargetHandle DirectionalShadowmap;
-        public static RenderTargetHandle LocalShadowmap;
-        public static RenderTargetHandle ScreenSpaceShadowmap;
-    }
-
-
-    public interface IRendererSetup
-    {
-
-        void Setup(LightweightForwardRenderer renderer, ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData);
-
-    }
-
     public class LightweightForwardRenderer
     {
         // Lights are culled per-object. In platforms that don't use StructuredBuffer
@@ -97,7 +28,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         }
 
         // TODO: Profile performance of using ComputeBuffer on mobiles that support it
-        public bool useComputeBufferForPerObjectLightIndices
+        public static bool useComputeBufferForPerObjectLightIndices
         {
             get
             {
@@ -341,6 +272,34 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                     cullResults.FillLightIndices(perObjectLightIndices);
                 }
             }
+        }
+
+        public static ClearFlag GetCameraClearFlag(Camera camera)
+        {
+            ClearFlag clearFlag = ClearFlag.None;
+            CameraClearFlags cameraClearFlags = camera.clearFlags;
+            if (cameraClearFlags != CameraClearFlags.Nothing)
+            {
+                clearFlag |= ClearFlag.Depth;
+                if (cameraClearFlags == CameraClearFlags.Color || cameraClearFlags == CameraClearFlags.Skybox)
+                    clearFlag |= ClearFlag.Color;
+            }
+
+            return clearFlag;
+        }
+
+        public static RendererConfiguration GetRendererConfiguration(int localLightsCount)
+        {
+            RendererConfiguration configuration = RendererConfiguration.PerObjectReflectionProbes | RendererConfiguration.PerObjectLightmaps | RendererConfiguration.PerObjectLightProbe;
+            if (localLightsCount > 0)
+            {
+                if (useComputeBufferForPerObjectLightIndices)
+                    configuration |= RendererConfiguration.ProvideLightIndices;
+                else
+                    configuration |= RendererConfiguration.PerObjectLightIndices8;
+            }
+
+            return configuration;
         }
     }
 }

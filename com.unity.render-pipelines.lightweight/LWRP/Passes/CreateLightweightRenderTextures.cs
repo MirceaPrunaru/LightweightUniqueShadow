@@ -2,9 +2,9 @@ using UnityEngine.Rendering;
 
 namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
-    public class ConfigureForwardRTs : ScriptableRenderPass
+    public class CreateLightweightRenderTextures : ScriptableRenderPass
     {
-        public ConfigureForwardRTs(LightweightForwardRenderer renderer) : base(renderer)
+        public CreateLightweightRenderTextures(LightweightForwardRenderer renderer) : base(renderer)
         {}
 
         const int k_DepthStencilBufferBits = 32;
@@ -50,7 +50,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
-        
+
         public override void Dispose(CommandBuffer cmd)
         {
             if (colorAttachmentHandle != RenderTargetHandle.BackBuffer)
