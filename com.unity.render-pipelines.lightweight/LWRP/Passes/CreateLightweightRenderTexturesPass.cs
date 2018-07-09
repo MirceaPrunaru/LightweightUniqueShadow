@@ -2,9 +2,9 @@ using UnityEngine.Rendering;
 
 namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
-    public class CreateLightweightRenderTextures : ScriptableRenderPass
+    public class CreateLightweightRenderTexturesPass : ScriptableRenderPass
     {
-        public CreateLightweightRenderTextures(LightweightForwardRenderer renderer) : base(renderer)
+        public CreateLightweightRenderTexturesPass(LightweightForwardRenderer renderer) : base(renderer)
         {}
 
         const int k_DepthStencilBufferBits = 32;

@@ -1,8 +1,8 @@
 namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
-    public class DrawSkybox : ScriptableRenderPass
+    public class DrawSkyboxPass : ScriptableRenderPass
     {
-        public DrawSkybox(LightweightForwardRenderer renderer) : base(renderer)
+        public DrawSkyboxPass(LightweightForwardRenderer renderer) : base(renderer)
         {}
 
         public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults,

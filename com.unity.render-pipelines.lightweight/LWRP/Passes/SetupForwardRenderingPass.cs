@@ -1,8 +1,8 @@
 namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
-    public class SetupForwardRendering : ScriptableRenderPass
+    public class SetupForwardRenderingPass : ScriptableRenderPass
     {
-        public SetupForwardRendering(LightweightForwardRenderer renderer) : base(renderer)
+        public SetupForwardRenderingPass(LightweightForwardRenderer renderer) : base(renderer)
         {}
 
         public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
