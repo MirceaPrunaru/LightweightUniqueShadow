@@ -69,7 +69,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             PerCameraBuffer._AdditionalLightSpotDir = Shader.PropertyToID("_AdditionalLightSpotDir");
             PerCameraBuffer._AdditionalLightSpotAttenuation = Shader.PropertyToID("_AdditionalLightSpotAttenuation");
             PerCameraBuffer._LightIndexBuffer = Shader.PropertyToID("_LightIndexBuffer");
-            
+
             m_ErrorMaterial = renderer.GetMaterial(MaterialHandles.Error);
 
             m_LegacyShaderPassNames = new List<ShaderPassName>();
@@ -325,7 +325,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             SetupShaderConstants(ref context, ref renderingData.cameraData, ref renderingData.lightData, ref renderingData.shadowData);
 
             CommandBuffer cmd = CommandBufferPool.Get(k_SwitchRTs);
-            using (new ProfilingSample(cmd, k_SwitchRTs))
+            //using (new ProfilingSample(cmd, k_SwitchRTs))
             {
                 SetRenderTarget(cmd, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, clearFlag, CoreUtils.ConvertSRGBToActiveColorSpace(clearColor));
                 context.ExecuteCommandBuffer(cmd);
