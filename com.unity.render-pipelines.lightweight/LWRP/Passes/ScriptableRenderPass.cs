@@ -5,7 +5,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
     public abstract class ScriptableRenderPass
     {
-        protected LightweightForwardRenderer renderer { get; private set; }
+        protected LightweightForwardRenderer renderer { get; }
 
         private List<ShaderPassName> m_ShaderPassNames = new List<ShaderPassName>();
 
@@ -18,17 +18,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         {}
 
         public abstract void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData);
-
-        protected RenderTargetIdentifier GetSurface(RenderTargetHandle handle)
-        {
-            if (renderer == null)
-            {
-                Debug.LogError("Pass has invalid renderer");
-                return new RenderTargetIdentifier();
-            }
-
-            return renderer.GetSurface(handle);
-        }
 
         protected void RegisterShaderPassName(string passName)
         {

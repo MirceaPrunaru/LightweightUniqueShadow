@@ -57,22 +57,22 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
         protected void SetRenderTarget(CommandBuffer cmd, RenderBufferLoadAction loadOp, RenderBufferStoreAction storeOp, ClearFlag clearFlag, Color clearColor)
         {
-            if (colorAttachmentHandle != RenderTargetHandle.BackBuffer)
+            if (colorAttachmentHandle != RenderTargetHandle.CameraTarget)
             {
-                if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
+                if (depthAttachmentHandle != RenderTargetHandle.CameraTarget)
                     SetRenderTarget(
                         cmd,
-                        GetSurface(colorAttachmentHandle),
+                        colorAttachmentHandle.Identifier(),
                         loadOp,
                         storeOp,
-                        GetSurface(depthAttachmentHandle),
+                        depthAttachmentHandle.Identifier(),
                         loadOp,
                         storeOp,
                         clearFlag,
                         clearColor,
                         descriptor.dimension);
                 else
-                    SetRenderTarget(cmd, GetSurface(colorAttachmentHandle), loadOp, storeOp, clearFlag, clearColor, descriptor.dimension);
+                    SetRenderTarget(cmd, colorAttachmentHandle.Identifier(), loadOp, storeOp, clearFlag, clearColor, descriptor.dimension);
             }
             else
             {

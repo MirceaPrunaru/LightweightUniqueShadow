@@ -23,8 +23,8 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         {
             CommandBuffer cmd = CommandBufferPool.Get("Render Opaque PostProcess Effects");
 
-            RenderTargetIdentifier source = GetSurface(colorAttachmentHandle);
-            LightweightPipeline.RenderPostProcess(cmd, renderer.postProcessRenderContext, ref renderingData.cameraData, descriptor.colorFormat, source, GetSurface(colorAttachmentHandle), true);
+            RenderTargetIdentifier source = colorAttachmentHandle.Identifier();
+            LightweightPipeline.RenderPostProcess(cmd, renderer.postProcessRenderContext, ref renderingData.cameraData, descriptor.colorFormat, source, colorAttachmentHandle.Identifier(), true);
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }

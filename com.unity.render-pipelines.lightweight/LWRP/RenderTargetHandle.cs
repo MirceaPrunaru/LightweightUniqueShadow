@@ -1,9 +1,27 @@
+using UnityEngine.Rendering;
+
 namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {
     public struct RenderTargetHandle
     {
-        public int id;
+        public int id { private set; get; }
+        
+        public static readonly RenderTargetHandle CameraTarget = new RenderTargetHandle {id = -1};
 
+        public void Init(string shaderProperty)
+        {
+            id = Shader.PropertyToID(shaderProperty);
+        }
+        
+        public RenderTargetIdentifier Identifier()
+        {
+            if (id == -1)
+            {
+                return BuiltinRenderTextureType.CameraTarget;
+            }
+            return new RenderTargetIdentifier(id);
+        }
+        
         public bool Equals(RenderTargetHandle other)
         {
             return id == other.id;
@@ -20,7 +38,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             return id;
         }
 
-        public static readonly RenderTargetHandle BackBuffer = new RenderTargetHandle {id = -1};
 
         public static bool operator ==(RenderTargetHandle c1, RenderTargetHandle c2)
         {

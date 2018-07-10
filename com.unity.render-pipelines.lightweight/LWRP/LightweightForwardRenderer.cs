@@ -49,7 +49,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         public FilterRenderersSettings opaqueFilterSettings { get; private set; }
         public FilterRenderersSettings transparentFilterSettings { get; private set; }
 
-        Dictionary<RenderTargetHandle, RenderTargetIdentifier> m_ResourceMap = new Dictionary<RenderTargetHandle, RenderTargetIdentifier>();
         List<ScriptableRenderPass> m_ActiveRenderPassQueue = new List<ScriptableRenderPass>();
 
         Material[] m_Materials;
@@ -123,21 +122,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             DisposePasses(ref context);
         }
 
-        public RenderTargetIdentifier GetSurface(RenderTargetHandle handle)
-        {
-            if (handle.id == -1)
-                return BuiltinRenderTextureType.CameraTarget;
-
-            RenderTargetIdentifier renderTargetID;
-            if (!m_ResourceMap.TryGetValue(handle, out renderTargetID))
-            {
-                Debug.LogError(string.Format("Handle {0} has not any surface registered to it.", handle));
-                return new RenderTargetIdentifier();
-            }
-
-            return renderTargetID;
-        }
-
+        
         public Material GetMaterial(MaterialHandles handle)
         {
             int handleID = (int)handle;
@@ -155,12 +140,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         public void Clear()
         {
             m_ActiveRenderPassQueue.Clear();
-        }
-
-        public void RegisterSurface(string shaderProperty, out RenderTargetHandle handle)
-        {
-            handle.id = Shader.PropertyToID(shaderProperty);
-            m_ResourceMap.Add(handle, new RenderTargetIdentifier(handle.id));
         }
 
         public void EnqueuePass(ScriptableRenderPass pass)

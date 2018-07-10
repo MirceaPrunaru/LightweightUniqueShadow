@@ -28,7 +28,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get("");
-            if (colorAttachmentHandle != RenderTargetHandle.BackBuffer)
+            if (colorAttachmentHandle != RenderTargetHandle.CameraTarget)
             {
                 var colorDescriptor = descriptor;
                 colorDescriptor.depthBufferBits = k_DepthStencilBufferBits; // TODO: does the color RT always need depth?
@@ -37,7 +37,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 cmd.GetTemporaryRT(colorAttachmentHandle.id, colorDescriptor, FilterMode.Bilinear);
             }
 
-            if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
+            if (depthAttachmentHandle != RenderTargetHandle.CameraTarget)
             {
                 var depthDescriptor = descriptor;
                 depthDescriptor.colorFormat = RenderTextureFormat.Depth;
@@ -53,16 +53,16 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
         public override void Dispose(CommandBuffer cmd)
         {
-            if (colorAttachmentHandle != RenderTargetHandle.BackBuffer)
+            if (colorAttachmentHandle != RenderTargetHandle.CameraTarget)
             {
                 cmd.ReleaseTemporaryRT(colorAttachmentHandle.id);
-                colorAttachmentHandle = RenderTargetHandle.BackBuffer;
+                colorAttachmentHandle = RenderTargetHandle.CameraTarget;
             }
 
-            if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
+            if (depthAttachmentHandle != RenderTargetHandle.CameraTarget)
             {
                 cmd.ReleaseTemporaryRT(depthAttachmentHandle.id);
-                depthAttachmentHandle = RenderTargetHandle.BackBuffer;
+                depthAttachmentHandle = RenderTargetHandle.CameraTarget;
             }
         }
     }

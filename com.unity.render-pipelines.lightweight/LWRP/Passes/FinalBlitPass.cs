@@ -23,7 +23,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
         {
             Material material = renderingData.cameraData.isStereoEnabled ? null : m_BlitMaterial;
-            RenderTargetIdentifier sourceRT = GetSurface(colorAttachmentHandle);
+            RenderTargetIdentifier sourceRT = colorAttachmentHandle.Identifier();
 
             CommandBuffer cmd = CommandBufferPool.Get("Final Blit Pass");
             cmd.SetGlobalTexture("_BlitTex", sourceRT);
@@ -46,7 +46,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             }
             else
             {
-                cmd.Blit(GetSurface(colorAttachmentHandle), BuiltinRenderTextureType.CameraTarget, material);
+                cmd.Blit(colorAttachmentHandle.Identifier(), BuiltinRenderTextureType.CameraTarget, material);
             }
 
             context.ExecuteCommandBuffer(cmd);

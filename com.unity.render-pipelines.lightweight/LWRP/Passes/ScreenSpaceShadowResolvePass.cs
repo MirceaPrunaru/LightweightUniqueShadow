@@ -46,7 +46,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             // stereo functionality, we use the screen-space shadow map as the source (until we have
             // a better solution).
             // An alternative would be DrawProcedural, but that would require further changes in the shader.
-            RenderTargetIdentifier screenSpaceOcclusionTexture = GetSurface(colorAttachmentHandle);
+            RenderTargetIdentifier screenSpaceOcclusionTexture = colorAttachmentHandle.Identifier();
             SetRenderTarget(cmd, screenSpaceOcclusionTexture, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store,
                 ClearFlag.Color | ClearFlag.Depth, Color.white, descriptor.dimension);
             cmd.Blit(screenSpaceOcclusionTexture, screenSpaceOcclusionTexture, m_ScreenSpaceShadowsMaterial);
@@ -65,10 +65,10 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
         public override void Dispose(CommandBuffer cmd)
         {
-            if (colorAttachmentHandle != RenderTargetHandle.BackBuffer)
+            if (colorAttachmentHandle != RenderTargetHandle.CameraTarget)
             {
                 cmd.ReleaseTemporaryRT(colorAttachmentHandle.id);
-                colorAttachmentHandle = RenderTargetHandle.BackBuffer;
+                colorAttachmentHandle = RenderTargetHandle.CameraTarget;
             }
         }
 

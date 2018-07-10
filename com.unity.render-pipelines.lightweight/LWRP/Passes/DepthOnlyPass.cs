@@ -42,7 +42,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 cmd.GetTemporaryRT(depthAttachmentHandle.id, descriptor, FilterMode.Point);
                 SetRenderTarget(
                     cmd,
-                    GetSurface(depthAttachmentHandle),
+                    depthAttachmentHandle.Identifier(),
                     RenderBufferLoadAction.DontCare,
                     RenderBufferStoreAction.Store,
                     ClearFlag.Depth,
@@ -70,10 +70,10 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
         public override void Dispose(CommandBuffer cmd)
         {
-            if (depthAttachmentHandle != RenderTargetHandle.BackBuffer)
+            if (depthAttachmentHandle != RenderTargetHandle.CameraTarget)
             {
                 cmd.ReleaseTemporaryRT(depthAttachmentHandle.id);
-                depthAttachmentHandle = RenderTargetHandle.BackBuffer;
+                depthAttachmentHandle = RenderTargetHandle.CameraTarget;
             }
         }
 

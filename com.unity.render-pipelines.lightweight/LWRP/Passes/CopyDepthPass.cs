@@ -24,8 +24,8 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get("Depth Copy");
-            RenderTargetIdentifier depthSurface = GetSurface(source);
-            RenderTargetIdentifier copyDepthSurface = GetSurface(destination);
+            RenderTargetIdentifier depthSurface = source.Identifier();
+            RenderTargetIdentifier copyDepthSurface = destination.Identifier();
 
             RenderTextureDescriptor descriptor = renderer.CreateRTDesc(ref renderingData.cameraData);
             descriptor.colorFormat = RenderTextureFormat.Depth;
@@ -62,10 +62,10 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         
         public override void Dispose(CommandBuffer cmd)
         {
-            if (destination != RenderTargetHandle.BackBuffer)
+            if (destination != RenderTargetHandle.CameraTarget)
             {
                 cmd.ReleaseTemporaryRT(destination.id);
-                destination = RenderTargetHandle.BackBuffer;
+                destination = RenderTargetHandle.CameraTarget;
             }
         }
     }
