@@ -13,9 +13,10 @@ namespace UnityEditor.Experimental.Rendering
         static void RenderGizmo(ReflectionProbe reflectionProbe, GizmoType gizmoType)
         {
             var e = GetEditorFor(reflectionProbe);
-            if (!e.sceneViewEditing)
+            if (e==null || !e.sceneViewEditing)
                 return;
 
+            var reflectionData = reflectionProbe.GetComponent<HDAdditionalReflectionData>();
 
             switch (EditMode.editMode)
             {
@@ -176,18 +177,6 @@ namespace UnityEditor.Experimental.Rendering
                 Handles.DrawLine(transform.position, hit.point);
                 Handles.DrawWireDisc(hit.point, hit.normal, 0.5f);
             }
-        }
-
-        static void Gizmos_CapturePoint(ReflectionProbe p, HDAdditionalReflectionData a, HDReflectionProbeEditor e)
-        {
-            Color color = Gizmos.color;
-            Gizmos.color = Color.green;
-            Matrix4x4 mat = Gizmos.matrix;
-            var t = a.proxyVolumeComponent != null ? a.proxyVolumeComponent.transform : p.transform;
-            Gizmos.matrix = Matrix4x4.TRS(t.position, t.rotation, Vector3.one);
-            Gizmos.DrawSphere(a.proxyOffsetCapturePoint, HandleUtility.GetHandleSize(a.proxyOffsetCapturePoint) * k_CapturePointSize);
-            Gizmos.matrix = mat;
-            Gizmos.color = color;
         }
     }
 }
