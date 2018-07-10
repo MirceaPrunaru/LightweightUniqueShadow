@@ -54,18 +54,9 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
         Material[] m_Materials;
 
+        
         public LightweightForwardRenderer(LightweightPipelineAsset pipelineAsset)
         {
-            // RenderTexture format depends on camera and pipeline (HDR, non HDR, etc)
-            // Samples (MSAA) depend on camera and pipeline
-            RegisterSurface("_CameraColorTexture", out RenderTargetHandles.Color);
-            RegisterSurface("_CameraDepthAttachment", out RenderTargetHandles.DepthAttachment);
-            RegisterSurface("_CameraDepthTexture", out RenderTargetHandles.DepthTexture);
-            RegisterSurface("_CameraOpaqueTexture", out RenderTargetHandles.OpaqueColor);
-            RegisterSurface("_DirectionalShadowmapTexture", out RenderTargetHandles.DirectionalShadowmap);
-            RegisterSurface("_LocalShadowmapTexture", out RenderTargetHandles.LocalShadowmap);
-            RegisterSurface("_ScreenSpaceShadowMapTexture", out RenderTargetHandles.ScreenSpaceShadowmap);
-
             m_Materials = new Material[(int)MaterialHandles.Count]
             {
                 CoreUtils.CreateEngineMaterial("Hidden/InternalErrorShader"),
@@ -129,22 +120,6 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             for (int i = 0; i < m_ActiveRenderPassQueue.Count; ++i)
                 m_ActiveRenderPassQueue[i].Execute(ref context, ref cullResults, ref renderingData);
 
-#if UNITY_EDITOR
-            if (renderingData.cameraData.isSceneViewCamera)
-            {
-                // Restore Render target for additional editor rendering.
-                // Note: Scene view camera always perform depth prepass
-                CommandBuffer cmd = CommandBufferPool.Get("Copy Depth to Camera");
-                CoreUtils.SetRenderTarget(cmd, BuiltinRenderTextureType.CameraTarget);
-                cmd.EnableShaderKeyword(LightweightKeywordStrings.DepthNoMsaa);
-                cmd.DisableShaderKeyword(LightweightKeywordStrings.DepthMsaa2);
-                cmd.DisableShaderKeyword(LightweightKeywordStrings.DepthMsaa4);
-                cmd.Blit(GetSurface(RenderTargetHandles.DepthTexture), BuiltinRenderTextureType.CameraTarget, GetMaterial(MaterialHandles.DepthCopy));
-                context.ExecuteCommandBuffer(cmd);
-                CommandBufferPool.Release(cmd);
-            }
-#endif
-
             DisposePasses(ref context);
         }
 
@@ -182,7 +157,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             m_ActiveRenderPassQueue.Clear();
         }
 
-        void RegisterSurface(string shaderProperty, out RenderTargetHandle handle)
+        public void RegisterSurface(string shaderProperty, out RenderTargetHandle handle)
         {
             handle.id = Shader.PropertyToID(shaderProperty);
             m_ResourceMap.Add(handle, new RenderTargetIdentifier(handle.id));

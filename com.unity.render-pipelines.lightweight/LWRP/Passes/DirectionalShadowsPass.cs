@@ -32,6 +32,8 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         Vector4[] m_CascadeSplitDistances;
 
         const string k_RenderDirectionalShadowmapTag = "Render Directional Shadowmap";
+        
+        private RenderTargetHandle destination { get; set; }
 
         public DirectionalShadowsPass(LightweightForwardRenderer renderer) : base(renderer)
         {
@@ -59,6 +61,11 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 : RenderTextureFormat.Depth;
         }
 
+        public void Setup(RenderTargetHandle destination)
+        {
+            this.destination = destination;
+        }
+        
         public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
         {
             if (renderingData.shadowData.renderDirectionalShadows)
@@ -171,7 +178,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             float invShadowAtlasHeight = 1.0f / shadowData.directionalShadowAtlasHeight;
             float invHalfShadowAtlasWidth = 0.5f * invShadowAtlasWidth;
             float invHalfShadowAtlasHeight = 0.5f * invShadowAtlasHeight;
-            cmd.SetGlobalTexture(RenderTargetHandles.DirectionalShadowmap.id, m_DirectionalShadowmapTexture);
+            cmd.SetGlobalTexture(destination.id, m_DirectionalShadowmapTexture);
             if (shadowData.directionalLightCascadeCount > 1)
                 cmd.SetGlobalMatrixArray(DirectionalShadowConstantBuffer._WorldToShadow, m_DirectionalShadowMatrices);
             else

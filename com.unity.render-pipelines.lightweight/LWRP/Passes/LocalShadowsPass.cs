@@ -26,6 +26,9 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         float[] m_LocalShadowStrength;
 
         const string k_RenderLocalShadows = "Render Local Shadows";
+        
+        
+        private RenderTargetHandle destination { get; set; }
 
         public LocalShadowsPass(LightweightForwardRenderer renderer) : base(renderer)
         {
@@ -47,6 +50,11 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             m_LocalShadowmapFormat = SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.Shadowmap)
                 ? RenderTextureFormat.Shadowmap
                 : RenderTextureFormat.Depth;
+        }
+        
+        public void Setup(RenderTargetHandle destination)
+        {
+            this.destination = destination;
         }
 
         public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
@@ -181,7 +189,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             float invHalfShadowAtlasWidth = 0.5f * invShadowAtlasWidth;
             float invHalfShadowAtlasHeight = 0.5f * invShadowAtlasHeight;
 
-            cmd.SetGlobalTexture(RenderTargetHandles.LocalShadowmap.id, m_LocalShadowmapTexture);
+            cmd.SetGlobalTexture(destination.id, m_LocalShadowmapTexture);
             cmd.SetGlobalMatrixArray(LocalShadowConstantBuffer._LocalWorldToShadowAtlas, m_LocalShadowMatrices);
             cmd.SetGlobalFloatArray(LocalShadowConstantBuffer._LocalShadowStrength, m_LocalShadowStrength);
             cmd.SetGlobalVector(LocalShadowConstantBuffer._LocalShadowOffset0, new Vector4(-invHalfShadowAtlasWidth, -invHalfShadowAtlasHeight, 0.0f, 0.0f));

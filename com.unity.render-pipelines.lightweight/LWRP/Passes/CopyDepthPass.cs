@@ -6,30 +6,33 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
     {
         Material m_DepthCopyMaterial;
 
-        private RenderTargetHandle depthAttachmentHandle { get; set; }
+        private RenderTargetHandle source { get; set; }
+        private RenderTargetHandle destination { get; set; }
+
 
         public CopyDepthPass(LightweightForwardRenderer renderer) : base(renderer)
         {
             m_DepthCopyMaterial = renderer.GetMaterial(MaterialHandles.DepthCopy);
         }
 
-        public void Setup(RenderTargetHandle depthAttachmentHandle)
+        public void Setup(RenderTargetHandle source, RenderTargetHandle destination)
         {
-            this.depthAttachmentHandle = depthAttachmentHandle;
+            this.source = source;
+            this.destination = destination;
         }
 
         public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
         {
             CommandBuffer cmd = CommandBufferPool.Get("Depth Copy");
-            RenderTargetIdentifier depthSurface = GetSurface(depthAttachmentHandle);
-            RenderTargetIdentifier copyDepthSurface = GetSurface(RenderTargetHandles.DepthTexture);
+            RenderTargetIdentifier depthSurface = GetSurface(source);
+            RenderTargetIdentifier copyDepthSurface = GetSurface(destination);
 
             RenderTextureDescriptor descriptor = renderer.CreateRTDesc(ref renderingData.cameraData);
             descriptor.colorFormat = RenderTextureFormat.Depth;
             descriptor.depthBufferBits = 32; //TODO: fix this ;
             descriptor.msaaSamples = 1;
             descriptor.bindMS = false;
-            cmd.GetTemporaryRT(RenderTargetHandles.DepthTexture.id, descriptor, FilterMode.Point);
+            cmd.GetTemporaryRT(destination.id, descriptor, FilterMode.Point);
 
             if (renderingData.cameraData.msaaSamples > 1)
             {
@@ -55,6 +58,15 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             }
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
+        }
+        
+        public override void Dispose(CommandBuffer cmd)
+        {
+            if (destination != RenderTargetHandle.BackBuffer)
+            {
+                cmd.ReleaseTemporaryRT(destination.id);
+                destination = RenderTargetHandle.BackBuffer;
+            }
         }
     }
 }

@@ -8,7 +8,8 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         float[] m_OpaqueScalerValues = {1.0f, 0.5f, 0.25f, 0.25f};
         int m_SampleOffsetShaderHandle;
 
-        private RenderTargetHandle colorAttachmentHandle { get; set; }
+        private RenderTargetHandle source { get; set; }
+        private RenderTargetHandle destination { get; set; }
 
         public CopyColorPass(LightweightForwardRenderer renderer) : base(renderer)
         {
@@ -16,23 +17,24 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             m_SampleOffsetShaderHandle = Shader.PropertyToID("_SampleOffset");
         }
 
-        public void Setup(RenderTargetHandle colorAttachmentHandle)
+        public void Setup(RenderTargetHandle source, RenderTargetHandle destination)
         {
-            this.colorAttachmentHandle = colorAttachmentHandle;
+            this.source = source;
+            this.destination = destination;
         }
 
         public override void Execute(ref ScriptableRenderContext context, ref CullResults cullResults, ref RenderingData renderingData)
         {
             
-            CommandBuffer cmd = CommandBufferPool.Get("Copy Opaque Color");
+            CommandBuffer cmd = CommandBufferPool.Get("Copy Color");
             Downsampling downsampling = renderingData.cameraData.opaqueTextureDownsampling;
             float opaqueScaler = m_OpaqueScalerValues[(int)downsampling];
 
             RenderTextureDescriptor opaqueDesc = renderer.CreateRTDesc(ref renderingData.cameraData, opaqueScaler);
-            RenderTargetIdentifier colorRT = GetSurface(colorAttachmentHandle);
-            RenderTargetIdentifier opaqueColorRT = GetSurface(RenderTargetHandles.OpaqueColor);
+            RenderTargetIdentifier colorRT = GetSurface(source);
+            RenderTargetIdentifier opaqueColorRT = GetSurface(destination);
 
-            cmd.GetTemporaryRT(RenderTargetHandles.OpaqueColor.id, opaqueDesc, renderingData.cameraData.opaqueTextureDownsampling == Downsampling.None ? FilterMode.Point : FilterMode.Bilinear);
+            cmd.GetTemporaryRT(destination.id, opaqueDesc, renderingData.cameraData.opaqueTextureDownsampling == Downsampling.None ? FilterMode.Point : FilterMode.Bilinear);
             switch (downsampling)
             {
                 case Downsampling.None:
@@ -53,5 +55,16 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
+        
+        
+        public override void Dispose(CommandBuffer cmd)
+        {
+            if (destination != RenderTargetHandle.BackBuffer)
+            {
+                cmd.ReleaseTemporaryRT(destination.id);
+                destination = RenderTargetHandle.BackBuffer;
+            }
+        }
+        
     }
 }
