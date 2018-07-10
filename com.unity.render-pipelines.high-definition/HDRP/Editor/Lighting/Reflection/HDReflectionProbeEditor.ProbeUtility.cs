@@ -15,7 +15,6 @@ namespace UnityEditor.Experimental.Rendering
                 if (targets[i] != null)
                 {
                     var p = (ReflectionProbe)targets[i];
-                    HDReflectionProbeEditorUtility.ChangeVisibility(p, visibility);
                 }
             }
         }
@@ -26,7 +25,6 @@ namespace UnityEditor.Experimental.Rendering
             {
                 var p = (ReflectionProbe)targets[i];
                 var a = (HDAdditionalReflectionData)m_AdditionalDataSerializedObject.targetObjects[i];
-                HDReflectionProbeEditorUtility.InitializeProbe(p, a);
             }
 
             // For an unknown reason, newly created probes sometype have the type "Quad" (value = 1)
