@@ -147,16 +147,6 @@ namespace UnityEditor.Experimental.Rendering.HDPipeline
             EditorUtility.ClearProgressBar();
         }
 
-        public static void ResetProbeSceneTextureInMaterial(ReflectionProbe p)
-        {
-            var renderer = p.GetComponent<Renderer>();
-            renderer.sharedMaterial.SetTexture(_Cubemap, p.texture);
-        }
-
-        public static void ResetProbeSceneTextureInMaterial(PlanarReflectionProbe p)
-        {
-        }
-
         static MethodInfo k_Lightmapping_BakeReflectionProbeSnapshot = typeof(UnityEditor.Lightmapping).GetMethod("BakeReflectionProbeSnapshot", BindingFlags.Static | BindingFlags.NonPublic);
         public static bool BakeReflectionProbeSnapshot(ReflectionProbe probe)
         {

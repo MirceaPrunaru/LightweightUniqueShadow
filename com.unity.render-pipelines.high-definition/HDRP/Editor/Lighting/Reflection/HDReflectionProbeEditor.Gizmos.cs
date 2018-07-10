@@ -1,5 +1,3 @@
-using System;
-using UnityEditor.IMGUI.Controls;
 using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -9,6 +7,9 @@ namespace UnityEditor.Experimental.Rendering
 {
     partial class HDReflectionProbeEditor
     {
+        static Mesh sphere;
+        static Material material;
+
         [DrawGizmo(GizmoType.Active)]
         static void RenderGizmo(ReflectionProbe reflectionProbe, GizmoType gizmoType)
         {
@@ -33,6 +34,8 @@ namespace UnityEditor.Experimental.Rendering
                     Gizmos_InfluenceFade(reflectionProbe, reflectionData, e, InfluenceType.Normal, true);
                     break;
             }
+
+            Gizmos_CapturePoint(reflectionProbe, reflectionData, e);
         }
 
         [DrawGizmo(GizmoType.Selected)]
@@ -48,21 +51,7 @@ namespace UnityEditor.Experimental.Rendering
             Gizmos_InfluenceFade(reflectionProbe, reflectionData, null, InfluenceType.Standard, false);
             Gizmos_InfluenceFade(reflectionProbe, reflectionData, null, InfluenceType.Normal, false);
 
-
             DrawVerticalRay(reflectionProbe.transform);
-            HDReflectionProbeEditorUtility.ChangeVisibility(reflectionProbe, true);
-        }
-
-        [DrawGizmo(GizmoType.NonSelected)]
-        static void DrawNonSelectedGizmo(ReflectionProbe reflectionProbe, GizmoType gizmoType)
-        {
-            var e = GetEditorFor(reflectionProbe);
-            if (e == null || !e.sceneViewEditing)
-                return;
-
-            var reflectionData = reflectionProbe.GetComponent<HDAdditionalReflectionData>();
-            if (reflectionData != null)
-                HDReflectionProbeEditorUtility.ChangeVisibility(reflectionProbe, false);
         }
 
         static void Gizmos_InfluenceFade(ReflectionProbe p, HDAdditionalReflectionData a, HDReflectionProbeEditor e, InfluenceType type, bool isEdit)
@@ -177,6 +166,21 @@ namespace UnityEditor.Experimental.Rendering
                 Handles.DrawLine(transform.position, hit.point);
                 Handles.DrawWireDisc(hit.point, hit.normal, 0.5f);
             }
+        }
+
+        static void Gizmos_CapturePoint(ReflectionProbe p, HDAdditionalReflectionData a, HDReflectionProbeEditor e)
+        {
+            if(sphere == null)
+            {
+                sphere = Resources.GetBuiltinResource<Mesh>("New-Sphere.fbx");
+            }
+            if(material == null)
+            {
+                material = new Material(Shader.Find("Debug/ReflectionProbePreview"));
+            }
+            material.SetTexture("_Cubemap", p.texture);
+            material.SetPass(0);
+            Graphics.DrawMeshNow(sphere, Matrix4x4.TRS(p.transform.position, Quaternion.identity, Vector3.one));
         }
     }
 }

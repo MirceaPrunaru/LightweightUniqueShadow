@@ -24,7 +24,9 @@ namespace UnityEditor.Experimental.Rendering
             BakeRealtimeProbeIfPositionChanged(s, p, o);
 
             HDReflectionProbeUI.DoShortcutKey(p, o);
-
+            
+            Gizmos_CapturePoint(p.target, p.targetData, o);
+            
             if (!s.sceneViewEditing)
                 return;
 
