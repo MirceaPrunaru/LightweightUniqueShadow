@@ -1,6 +1,5 @@
 using System;
 using UnityEngine.Rendering;
-using UnityEngine.SceneManagement;
 
 namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 {

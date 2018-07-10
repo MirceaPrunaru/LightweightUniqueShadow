@@ -42,8 +42,8 @@ public class CustomLWPipe : MonoBehaviour, IRendererSetup
 
         renderer.EnqueuePass(m_SetupForwardRenderingPass);
 
-        RenderTargetHandle colorHandle = RenderTargetHandle.BackBuffer;
-        RenderTargetHandle depthHandle = RenderTargetHandle.BackBuffer;
+        RenderTargetHandle colorHandle = RenderTargetHandle.CameraTarget;
+        RenderTargetHandle depthHandle = RenderTargetHandle.CameraTarget;
         
         var sampleCount = (SampleCount)renderingData.cameraData.msaaSamples;
         m_CreateLightweightRenderTexturesPass.Setup(baseDescriptor, colorHandle, depthHandle, sampleCount);
