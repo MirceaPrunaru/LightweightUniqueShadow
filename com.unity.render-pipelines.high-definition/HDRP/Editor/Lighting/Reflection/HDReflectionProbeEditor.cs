@@ -66,12 +66,6 @@ namespace UnityEditor.Experimental.Rendering
             }
 
             InitializeAllTargetProbes();
-            ChangeVisibilityOfAllTargets(true);
-        }
-
-        void OnDisable()
-        {
-            ChangeVisibilityOfAllTargets(false);
         }
 
 
