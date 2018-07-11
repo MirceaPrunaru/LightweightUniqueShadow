@@ -30,8 +30,8 @@ namespace UnityEditor.ShaderGraph
             return
                 @"
 {
-    float reconstructZ = sqrt(1 - ( In.x * In.x + In.y * In.y));
-    float3 normalVector = float3(In.x, In.y, reconstructZ);
+    {precision} reconstructZ = sqrt(1 - ( In.x * In.x + In.y * In.y));
+    {precision}3 normalVector = {precision}3(In.x, In.y, reconstructZ);
     Out = normalize(normalVector);
 }";
         }
