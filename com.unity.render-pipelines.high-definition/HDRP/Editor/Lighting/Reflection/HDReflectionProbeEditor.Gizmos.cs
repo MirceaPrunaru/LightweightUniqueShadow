@@ -14,7 +14,7 @@ namespace UnityEditor.Experimental.Rendering
         static void RenderGizmo(ReflectionProbe reflectionProbe, GizmoType gizmoType)
         {
             var e = GetEditorFor(reflectionProbe);
-            if (e==null || !e.sceneViewEditing)
+            if (e == null || !e.sceneViewEditing)
                 return;
 
             var reflectionData = reflectionProbe.GetComponent<HDAdditionalReflectionData>();
@@ -34,18 +34,20 @@ namespace UnityEditor.Experimental.Rendering
                     Gizmos_InfluenceFade(reflectionProbe, reflectionData, e, InfluenceType.Normal, true);
                     break;
             }
-
-            Gizmos_CapturePoint(reflectionProbe, reflectionData, e);
         }
 
         [DrawGizmo(GizmoType.Selected)]
         static void DrawSelectedGizmo(ReflectionProbe reflectionProbe, GizmoType gizmoType)
         {
             var e = GetEditorFor(reflectionProbe);
-            if (e == null || !e.sceneViewEditing)
+            if (e == null)
                 return;
 
             var reflectionData = reflectionProbe.GetComponent<HDAdditionalReflectionData>();
+            Gizmos_CapturePoint(reflectionProbe, reflectionData, e);
+
+            if (!e.sceneViewEditing)
+                return;
 
             //Gizmos_Influence(reflectionProbe, reflectionData, e, false);
             Gizmos_InfluenceFade(reflectionProbe, reflectionData, null, InfluenceType.Standard, false);
