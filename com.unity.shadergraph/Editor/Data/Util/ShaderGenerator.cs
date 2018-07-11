@@ -499,12 +499,12 @@ namespace UnityEditor.ShaderGraph
             if (combinedRequirements.requiresNormal > 0 || combinedRequirements.requiresBitangent > 0)
             {
                 var name = preferredCoordinateSpace.ToVariableName(InterpolatorType.Normal);
-                vertexShader.AppendLine("float3 {0} = {1};", name, ConvertBetweenSpace("v.normal", CoordinateSpace.Object, preferredCoordinateSpace, InputType.Normal));
+                vertexShader.AppendLine("float3 {0} = normalize({1});", name, ConvertBetweenSpace("v.normal", CoordinateSpace.Object, preferredCoordinateSpace, InputType.Normal));
                 if (graphModelRequirements.requiresNormal > 0 || graphModelRequirements.requiresBitangent > 0)
                 {
                     vertexOutputStruct.AppendLine("float3 {0} : TEXCOORD{1};", name, interpolatorIndex);
                     vertexShaderOutputs.AppendLine("o.{0} = {0};", name);
-                    pixelShader.AppendLine("float3 {0} = normalize(IN.{0});", name);
+                    pixelShader.AppendLine("float3 {0} = IN.{0};", name);
                     interpolatorIndex++;
                 }
             }
@@ -515,12 +515,12 @@ namespace UnityEditor.ShaderGraph
             if (combinedRequirements.requiresTangent > 0 || combinedRequirements.requiresBitangent > 0)
             {
                 var name = preferredCoordinateSpace.ToVariableName(InterpolatorType.Tangent);
-                vertexShader.AppendLine("float3 {0} = {1};", name, ConvertBetweenSpace("v.tangent.xyz", CoordinateSpace.Object, preferredCoordinateSpace, InputType.Vector));
+                vertexShader.AppendLine("float3 {0} = normalize({1});", name, ConvertBetweenSpace("v.tangent.xyz", CoordinateSpace.Object, preferredCoordinateSpace, InputType.Vector));
                 if (graphModelRequirements.requiresTangent > 0 || graphModelRequirements.requiresBitangent > 0)
                 {
                     vertexOutputStruct.AppendLine("float3 {0} : TEXCOORD{1};", name, interpolatorIndex);
                     vertexShaderOutputs.AppendLine("o.{0} = {0};", name);
-                    pixelShader.AppendLine("float3 {0} = normalize(IN.{0});", name);
+                    pixelShader.AppendLine("float3 {0} = IN.{0};", name);
                     interpolatorIndex++;
                 }
             }
@@ -531,7 +531,7 @@ namespace UnityEditor.ShaderGraph
             if (combinedRequirements.requiresBitangent > 0)
             {
                 var name = preferredCoordinateSpace.ToVariableName(InterpolatorType.BiTangent);
-                vertexShader.AppendLine("float3 {0} = normalize(cross({1}, {2}.xyz) * {3});",
+                vertexShader.AppendLine("float3 {0} = cross({1}, {2}.xyz) * {3};",
                     name,
                     preferredCoordinateSpace.ToVariableName(InterpolatorType.Normal),
                     preferredCoordinateSpace.ToVariableName(InterpolatorType.Tangent),
@@ -540,7 +540,7 @@ namespace UnityEditor.ShaderGraph
                 {
                     vertexOutputStruct.AppendLine("float3 {0} : TEXCOORD{1};", name, interpolatorIndex);
                     vertexShaderOutputs.AppendLine("o.{0} = {0};", name);
-                    pixelShader.AppendLine("float3 {0} = normalize(IN.{0});", name);
+                    pixelShader.AppendLine("float3 {0} = IN.{0};", name);
                     interpolatorIndex++;
                 }
             }
@@ -558,7 +558,7 @@ namespace UnityEditor.ShaderGraph
                 {
                     vertexOutputStruct.AppendLine("float3 {0} : TEXCOORD{1};", name, interpolatorIndex);
                     vertexShaderOutputs.AppendLine("o.{0} = {0};", name);
-                    pixelShader.AppendLine("float3 {0} = normalize(IN.{0});", name);
+                    pixelShader.AppendLine("float3 {0} = IN.{0};", name);
                     interpolatorIndex++;
                 }
             }
