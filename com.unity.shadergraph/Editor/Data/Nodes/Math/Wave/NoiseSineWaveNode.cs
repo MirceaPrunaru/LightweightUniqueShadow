@@ -29,10 +29,10 @@ namespace UnityEditor.ShaderGraph
             return
                 @"
 {
-    float sinIn = sin(In);
-    float sinInOffset = sin(In + 1.0);
+    {precision} sinIn = sin(In);
+    {precision} sinInOffset = sin(In + 1.0);
     {precision} randomno =  frac(sin((sinIn - sinInOffset) * (12.9898 + 78.233))*43758.5453);
-    float noise = lerp(MinMax.x, MinMax.y, randomno);
+    {precision} noise = lerp(MinMax.x, MinMax.y, randomno);
     Out = sinIn + noise;
 }
 ";
