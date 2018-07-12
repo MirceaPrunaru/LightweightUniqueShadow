@@ -5,7 +5,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     public partial class Decal
     {
         // Main structure that store the user data (i.e user input of master node in material graph)
-        [GenerateHLSL(PackingRules.Exact, false, true, 10000)]
+        [GenerateHLSL(PackingRules.Exact, false, true, 200)]
         public struct DecalSurfaceData
         {
             [SurfaceDataAttributes("Base Color", false, true)]
@@ -49,7 +49,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
             sRGBFlags = m_sRGBFlags;
         }
     }
-    
+
     // normal to world only uses 3x3 for actual matrix so some data is packed in the unused space
     // blend:
     // float decalBlend = decalData.normalToWorld[0][3];
@@ -58,7 +58,7 @@ namespace UnityEngine.Experimental.Rendering.HDPipeline
     // tiling:
     // float2 uvScale = float2(decalData.normalToWorld[3][0], decalData.normalToWorld[3][1]);
     // float2 uvBias = float2(decalData.normalToWorld[3][2], decalData.normalToWorld[3][3]);
-    [GenerateHLSL]
+    [GenerateHLSL(PackingRules.Exact, false)]
     public struct DecalData
     {
         public Matrix4x4 worldToDecal;

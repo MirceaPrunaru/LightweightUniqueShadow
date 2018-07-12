@@ -1,6 +1,9 @@
 using System;
 using UnityEngine;
 using UnityEngine.Experimental.UIElements;
+#if UNITY_2018_3_OR_NEWER
+using ContextualMenu = UnityEngine.Experimental.UIElements.DropdownMenu;
+#endif
 
 namespace UnityEditor.ShaderGraph.Drawing
 {
@@ -37,6 +40,15 @@ namespace UnityEditor.ShaderGraph.Drawing
             element.ReleaseMouseCapture();
         }
 #endif
+
+        public static void OnToggleChanged(this Toggle toggle, EventCallback<ChangeEvent<bool>> callback)
+        {
+#if UNITY_2018_3_OR_NEWER
+            toggle.OnValueChanged(callback);
+#else
+            toggle.OnToggle(() => callback(ChangeEvent<bool>.GetPooled(!toggle.value, toggle.value)));
+#endif
+        }
     }
 
     static class TrickleDownEnum
