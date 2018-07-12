@@ -279,6 +279,7 @@ Shader "HDRenderPipeline/LitTessellation"
 
     //enable GPU instancing support
     #pragma multi_compile_instancing
+    #pragma instancing_options renderinglayer
 
     //-------------------------------------------------------------------------------------
     // Define
