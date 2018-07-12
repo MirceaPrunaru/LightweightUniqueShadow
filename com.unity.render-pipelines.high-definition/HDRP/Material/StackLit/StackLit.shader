@@ -325,6 +325,7 @@ Shader "HDRenderPipeline/StackLit"
     #pragma shader_feature _STACKLIT_DEBUG
     //enable GPU instancing support
     #pragma multi_compile_instancing
+    #pragma instancing_options renderinglayer
 
     //-------------------------------------------------------------------------------------
     // Define
