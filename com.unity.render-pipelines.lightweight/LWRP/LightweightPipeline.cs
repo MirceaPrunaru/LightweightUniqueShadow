@@ -45,6 +45,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         public override void Dispose()
         {
             base.Dispose();
+            Camera.SetupCurrent( null );
             Shader.globalRenderPipeline = "";
             SupportedRenderingFeatures.active = new SupportedRenderingFeatures();
 
@@ -75,6 +76,8 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             foreach (Camera camera in cameras)
             {
                 BeginCameraRendering(camera);
+                Camera.SetupCurrent( camera );
+
                 string renderCameraTag = "Render " + camera.name;
                 CommandBuffer cmd = CommandBufferPool.Get(renderCameraTag);
                 using (new ProfilingSample(cmd, renderCameraTag))
@@ -258,7 +261,15 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             renderingData.cameraData = cameraData;
             InitializeLightData(visibleLights, maxSupportedLocalLightsPerPass, maxSupportedVertexLights, out renderingData.lightData);
             InitializeShadowData(hasDirectionalShadowCastingLight, hasLocalShadowCastingLight, out renderingData.shadowData);
+            InitializeUniqueShadowData( out renderingData.uniqueShadowData );
             renderingData.supportsDynamicBatching = pipelineAsset.supportsDynamicBatching;
+        }
+
+        void InitializeUniqueShadowData( out UniqueShadowData uniqueShadowData )
+        {
+            uniqueShadowData.cameras = pipelineAsset.uniqueShadowCameras.ToArray();
+            uniqueShadowData.renderUniqueShadowShadows = pipelineAsset.supportsDirectionalShadows && uniqueShadowData.cameras.Length > 0;
+            pipelineAsset.uniqueShadowCameras.Clear();
         }
 
         void InitializeShadowData(bool hasDirectionalShadowCastingLight, bool hasLocalShadowCastingLight, out ShadowData shadowData)

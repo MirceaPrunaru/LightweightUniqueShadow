@@ -62,6 +62,40 @@ CBUFFER_END
 #define BEYOND_SHADOW_FAR(shadowCoord) shadowCoord.z >= UNITY_RAW_FAR_CLIP_VALUE
 #endif
 
+#if defined(_UNIQUE_SHADOW)
+static half2 poisson[8] = {
+	half2(0.02971195f, -0.8905211f),
+	half2(0.2495298f, 0.732075f),
+	half2(-0.3469206f, -0.6437836f),
+	half2(-0.01878909f, 0.4827394f),
+	half2(-0.2725213f, -0.896188f),
+	half2(-0.6814336f, 0.6480481f),
+	half2(0.4152045f, -0.2794172f),
+	half2(0.1310554f, 0.2675925f),
+};
+
+
+TEXTURE2D_SHADOW(_UniqueShadowTexture);
+SAMPLER_CMP(sampler_UniqueShadowTexture);
+uniform half _UniqueShadowFilterWidth;
+uniform float4x4 _UniqueShadowMatrix;
+
+half SampleUniqueD3D9OGL(half4 shadowCoord)
+{
+#if 1
+    half4 uv = shadowCoord;
+	half shadow = 0.f;
+	for(int i = 0; i < 8; ++i) {
+		uv.xy = shadowCoord.xy + poisson[i] * _UniqueShadowFilterWidth;
+        shadow += SAMPLE_TEXTURE2D_SHADOW(_UniqueShadowTexture, sampler_UniqueShadowTexture, uv.xyz).x;
+	} 
+	return shadow / 8.f;
+#else
+    return SAMPLE_TEXTURE2D_SHADOW(_UniqueShadowTexture, sampler_UniqueShadowTexture, shadowCoord.xyz).x;
+#endif
+}
+#endif
+
 struct ShadowSamplingData
 {
     half4 shadowOffset0;
@@ -182,6 +216,8 @@ float4 TransformWorldToShadowCoord(float3 positionWS)
 #ifdef _SHADOWS_CASCADE
     half cascadeIndex = ComputeCascadeIndex(positionWS);
     return mul(_WorldToShadow[cascadeIndex], float4(positionWS, 1.0));
+#elif _UNIQUE_SHADOW
+    return mul(_UniqueShadowMatrix, float4(positionWS, 1.0));
 #else
     return mul(_WorldToShadow, float4(positionWS, 1.0));
 #endif
@@ -201,6 +237,8 @@ half MainLightRealtimeShadowAttenuation(float4 shadowCoord)
 
 #if SHADOWS_SCREEN
     return SampleScreenSpaceShadowMap(shadowCoord);
+#elif _UNIQUE_SHADOW
+    return SampleUniqueD3D9OGL(shadowCoord);
 #else
     ShadowSamplingData shadowSamplingData = GetMainLightShadowSamplingData();
     half shadowStrength = GetMainLightShadowStrength();

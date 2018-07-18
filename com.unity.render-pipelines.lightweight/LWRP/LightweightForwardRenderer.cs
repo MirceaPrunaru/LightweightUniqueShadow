@@ -13,6 +13,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         LocalShadows,
         ScreenSpaceShadowResolve,
         ForwardLit,
+        UniqueShadow,
         Count,
     }
 
@@ -115,6 +116,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 new LocalShadowsPass(this),
                 new ScreenSpaceShadowResolvePass(this),
                 new ForwardLitPass(this),
+                new UniqueShadowsPass(this),
             };
 
             postProcessRenderContext = new PostProcessRenderContext();
@@ -189,6 +191,9 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
             if (renderingData.shadowData.renderLocalShadows)
                 EnqueuePass(cmd, RenderPassHandles.LocalShadows, shadowDescriptor);
+
+            if (renderingData.uniqueShadowData.renderUniqueShadowShadows)
+                EnqueuePass(cmd, RenderPassHandles.UniqueShadow, shadowDescriptor);
 
             bool requiresDepthAttachment = requiresCameraDepth && !requiresDepthPrepass;
             bool requiresColorAttachment = RequiresIntermediateColorTexture(ref renderingData.cameraData, baseDescriptor, requiresDepthAttachment);
@@ -299,7 +304,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
             ScriptableRenderPass pass = GetPass(passHandle);
             pass.Setup(cmd, baseDescriptor, colorAttachmentHandles, depthAttachmentHandle, samples);
 
-            if (passHandle == RenderPassHandles.DirectionalShadows || passHandle == RenderPassHandles.LocalShadows)
+            if (passHandle == RenderPassHandles.DirectionalShadows || passHandle == RenderPassHandles.LocalShadows || passHandle == RenderPassHandles.UniqueShadow)
                 m_ActiveShadowQueue.Add(pass);
             else
                 m_ActiveRenderPassQueue.Add(pass);

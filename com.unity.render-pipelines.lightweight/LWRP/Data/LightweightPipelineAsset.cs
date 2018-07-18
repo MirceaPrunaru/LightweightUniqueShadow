@@ -1,5 +1,6 @@
-#if UNITY_EDITOR
 using System;
+using System.Collections.Generic;
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.ProjectWindowCallback;
 #endif
@@ -425,6 +426,16 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
                 k_AssetVersion = 3;
                 m_SoftShadowsSupported = (m_ShadowType == ShadowType.SOFT_SHADOWS);
             }
+        }
+
+        [NonSerialized]
+        internal List<Camera> uniqueShadowCameras = new List<Camera>();
+        public void AddUniqueShadow( Camera camera )
+        {
+			if( uniqueShadowCameras.Contains( camera ) == false )
+				uniqueShadowCameras.Add( camera );
+			else
+				Debug.LogWarning( camera );
         }
     }
 }

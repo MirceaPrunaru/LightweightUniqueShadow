@@ -27,6 +27,7 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
         public CameraData cameraData;
         public LightData lightData;
         public ShadowData shadowData;
+        public UniqueShadowData uniqueShadowData;
         public bool supportsDynamicBatching;
     }
 
@@ -76,6 +77,12 @@ namespace UnityEngine.Experimental.Rendering.LightweightPipeline
 
         public LightShadows renderedDirectionalShadowQuality;
         public LightShadows renderedLocalShadowQuality;
+    }
+
+    public struct UniqueShadowData
+    {
+        public bool renderUniqueShadowShadows;
+        public Camera[] cameras;
     }
 
     public class CameraComparer : IComparer<Camera>

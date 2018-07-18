@@ -103,7 +103,7 @@ Shader "LightweightPipeline/Standard (Physically Based)"
             #pragma multi_compile _ _SHADOWS_ENABLED
             #pragma multi_compile _ _LOCAL_SHADOWS_ENABLED
             #pragma multi_compile _ _SHADOWS_SOFT
-            #pragma multi_compile _ _SHADOWS_CASCADE
+            #pragma multi_compile _ _SHADOWS_CASCADE _UNIQUE_SHADOW
 
             // -------------------------------------
             // Unity defined keywords
